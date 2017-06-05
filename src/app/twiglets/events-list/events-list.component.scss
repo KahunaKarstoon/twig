@@ -1,0 +1,35 @@
+:host {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  .event-controls {
+    flex: 0 0 30px;
+  }
+  .overflow-scroll {
+    flex: 1;
+    overflow: scroll;
+  }
+  i {
+    border: 1px solid rgba(0, 0, 0, 0.125);
+    padding: 2px;
+    border-radius: 10px;
+    margin-top: -8px;
+  }
+  .clickable {
+    cursor: pointer;
+  }
+  .fa-trash {
+    margin-left: 2px;
+  }
+  .grey {
+    color: #999999;
+  }
+  .active {
+    background-color: #baeef7;
+  }
+  h4 {
+    width: 100%;
+    float: left;
+    padding-left: 0px;
+  }
+}

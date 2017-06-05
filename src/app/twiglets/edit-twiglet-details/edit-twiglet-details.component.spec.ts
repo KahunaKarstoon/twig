@@ -15,7 +15,6 @@ import { StateService } from './../../state.service';
 describe('EditTwigletDetailsComponent', () => {
   let component: EditTwigletDetailsComponent;
   let fixture: ComponentFixture<EditTwigletDetailsComponent>;
-  let compRef;
   const stateServiceStubbed = stateServiceStub();
 
   beforeEach(async(() => {
@@ -39,10 +38,10 @@ describe('EditTwigletDetailsComponent', () => {
 
   beforeEach(() => {
     fixture = TestBed.createComponent(EditTwigletDetailsComponent);
-    compRef = fixture.componentRef.hostView['internalView']['compView_0'];
     component = fixture.componentInstance;
     component.twigletNames = ['name1', 'name2'];
     component.twigletName = 'name1';
+    component.currentTwiglet = 'name2';
     fixture.detectChanges();
   });
 
@@ -92,7 +91,7 @@ describe('EditTwigletDetailsComponent', () => {
       component.form.controls['name'].setValue('name2');
       component.form.controls['name'].markAsDirty();
       component.onValueChanged();
-      compRef.changeDetectorRef.markForCheck();
+      component['cd'].markForCheck();
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelector('.alert-danger')).toBeTruthy();
     });
@@ -101,7 +100,7 @@ describe('EditTwigletDetailsComponent', () => {
       component.form.controls['name'].setValue('');
       component.form.controls['name'].markAsDirty();
       component.onValueChanged();
-      compRef.changeDetectorRef.markForCheck();
+      component['cd'].markForCheck();
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelector('.alert-danger')).toBeTruthy();
     });
@@ -138,8 +137,15 @@ describe('EditTwigletDetailsComponent', () => {
 
       it('updates the list of twiglets', () => {
         spyOn(stateServiceStubbed.twiglet, 'updateListOfTwiglets');
-        fixture.nativeElement.querySelector('.submit').click();
+        spyOn(stateServiceStubbed.userState, 'stopSpinner').and.returnValue(Observable.of({}));
+        component.processForm();
         expect(stateServiceStubbed.twiglet.updateListOfTwiglets).toHaveBeenCalled();
+      });
+
+      it('refreshes the changelog', () => {
+        spyOn(stateServiceStubbed.twiglet.changeLogService, 'refreshChangelog');
+        component.processForm();
+        expect(stateServiceStubbed.twiglet.changeLogService.refreshChangelog).toHaveBeenCalled();
       });
     });
   });

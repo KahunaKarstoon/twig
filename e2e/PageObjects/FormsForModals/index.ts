@@ -2,7 +2,9 @@ import { browser, element, by, Key, ElementFinder, ElementArrayFinder } from 'pr
 
 const modalPath = `//ngb-modal-window[@class='modal fade show']`;
 const modalNotOpenError = new Error('Modal not open');
-export class ModalForm {
+const remote = require('selenium-webdriver/remote');
+
+export class FormsForModals {
 
   /**
    * Gets the parent div of a label, used to quickly navigate around .form-groups
@@ -11,7 +13,7 @@ export class ModalForm {
    * @param {any} labelText the text of the label
    * @returns {ElementFinder}
    *
-   * @memberOf ModalForm
+   * @memberOf FormsForModals
    */
   private getParentOfLabel(labelText): ElementFinder {
     return element(by.xpath(`${modalPath}//form//label[contains(text(), "${labelText}")]/parent::*`));
@@ -22,7 +24,7 @@ export class ModalForm {
    *
    * @private
    *
-   * @memberOf ModalForm
+   * @memberOf FormsForModals
    */
   private throwIfNotOpen(): void {
     if (!this.isModalOpen) {
@@ -35,7 +37,7 @@ export class ModalForm {
    *
    * @readonly
    * @type {PromiseLike<boolean>}
-   * @memberOf ModalForm
+   * @memberOf FormsForModals
    */
   get isModalOpen(): PromiseLike<boolean>{
     return browser.isElementPresent(element(by.css('.modal:not(.modalTop)')));
@@ -46,7 +48,7 @@ export class ModalForm {
    *
    * @readonly
    * @type {PromiseLike<string>}
-   * @memberOf ModalForm
+   * @memberOf FormsForModals
    */
   get modalTitle(): PromiseLike<string> {
     this.throwIfNotOpen();
@@ -58,11 +60,17 @@ export class ModalForm {
    *
    * @readonly
    * @type {PromiseLike<number>}
-   * @memberOf ModalForm
+   * @memberOf FormsForModals
    */
   get formErrorCount(): PromiseLike<number> {
     this.throwIfNotOpen();
     return element(by.xpath(modalPath)).all(by.className('alert-danger')).count();
+  }
+
+  waitForModalToClose() {
+    browser.wait(element(by.xpath(modalPath)).isPresent().then(present => {
+      return !present;
+    }), 5000);
   }
 
   /**
@@ -71,7 +79,7 @@ export class ModalForm {
    * @param {any} labelText the text of the label, fuzzy finding but case sensitive
    * @returns {PromiseLike<string>}
    *
-   * @memberOf ModalForm
+   * @memberOf FormsForModals
    */
   getErrorByLabel(labelText) {
     this.throwIfNotOpen();
@@ -89,7 +97,7 @@ export class ModalForm {
    * @param {any} buttonText
    * @returns {PromiseLike<boolean>}
    *
-   * @memberOf ModalForm
+   * @memberOf FormsForModals
    */
   checkIfButtonEnabled(buttonText): PromiseLike<boolean> {
     this.throwIfNotOpen();
@@ -103,7 +111,7 @@ export class ModalForm {
    * @param {any} labelText the text of the label, fuzzy finding but case sensitive
    * @param {any} value the value to be placed in the text field
    *
-   * @memberOf ModalForm
+   * @memberOf FormsForModals
    */
   fillInTextFieldByLabel(labelText, value): void {
     this.throwIfNotOpen();
@@ -119,7 +127,7 @@ export class ModalForm {
    * @param {any} ngModel
    * @param {any} value
    *
-   * @memberOf ModalForm
+   * @memberOf FormsForModals
    */
   fillInOnlyTextField(value): void {
     this.throwIfNotOpen();
@@ -135,12 +143,13 @@ export class ModalForm {
    * @param {any} labelText the text of the label, fuzzy finding but case sensitive
    * @param {any} pathToFile the path
    *
-   * @memberOf ModalForm
+   * @memberOf FormsForModals
    */
   uploadFileByLabel(labelText, pathToFile): void {
     this.throwIfNotOpen();
     const parent = this.getParentOfLabel(labelText);
     const input = parent.$('input');
+    browser.setFileDetector(new remote.FileDetector());
     input.clear();
     input.sendKeys(`${__dirname}/${pathToFile}`);
   }
@@ -150,7 +159,7 @@ export class ModalForm {
    *
    * @param {any} labelText the text of the label, fuzzy finding but case sensitive
    *
-   * @memberOf ModalForm
+   * @memberOf FormsForModals
    */
   makeInputFieldDirtyByLabel(labelText): void {
     this.throwIfNotOpen();
@@ -167,7 +176,7 @@ export class ModalForm {
    * @param {any} labelText the text of the label, fuzzy finding but case sensitive
    * @param {any} optionText the text of the option to be selected.
    *
-   * @memberOf ModalForm
+   * @memberOf FormsForModals
    */
   selectOptionByLabel(labelText, optionText): void {
     this.throwIfNotOpen();
@@ -190,7 +199,7 @@ export class ModalForm {
    *
    * @param {any} buttonText the button text to look for.
    *
-   * @memberOf ModalForm
+   * @memberOf FormsForModals
    */
   clickButton(buttonText): void {
     this.throwIfNotOpen();

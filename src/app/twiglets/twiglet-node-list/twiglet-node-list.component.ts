@@ -14,8 +14,7 @@ import {
 } from '@angular/core';
 import { DOCUMENT } from '@angular/platform-browser';
 import { NgbPanelChangeEvent } from '@ng-bootstrap/ng-bootstrap';
-import { Map, fromJS } from 'immutable';
-import { PageScrollConfig, PageScrollInstance, PageScrollService } from 'ng2-page-scroll';
+import { fromJS, Map } from 'immutable';
 import { clone } from 'ramda';
 
 import { D3Node, ModelEntity, UserState } from '../../../non-angular/interfaces';
@@ -36,10 +35,9 @@ export class TwigletNodeListComponent implements OnChanges, OnInit {
   nodesArray = [];
 
 
-  constructor(private stateService: StateService,
+  constructor(public stateService: StateService,
               private elementRef: ElementRef,
               private cd: ChangeDetectorRef) {
-    PageScrollConfig.defaultDuration = 250;
   }
 
   ngOnInit() {
@@ -80,8 +78,8 @@ export class TwigletNodeListComponent implements OnChanges, OnInit {
     const entity = this.twigletModel.getIn(['entities', type]);
     return {
       type,
-      color: entity.get('color'),
-      icon: entity.get('class'),
+      color: entity ? entity.get('color') : '#000000',
+      icon: entity ? entity.get('class') : 'question-circle',
     };
   }
 }

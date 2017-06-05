@@ -32,19 +32,21 @@ export class DeleteModelConfirmationComponent implements OnInit {
   }
 
   /**
-   * Run when the user presses Delete
+   * Runs when the user presses Delete
    *
    *
    * @memberOf DeleteModelConfirmationComponent
    */
   deleteConfirmed() {
     const self = this;
+    this.stateService.userState.startSpinner();
     this.stateService.model.removeModel(this.resourceName).subscribe(response => {
       this.stateService.model.updateListOfModels();
       this.toastr.success('Model deleted successfully');
       if (self.model.get('name') === self.resourceName) {
         this.router.navigate(['/']);
       }
+      this.stateService.userState.stopSpinner();
       this.activeModal.close();
     }, handleError.bind(self));
   }

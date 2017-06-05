@@ -20,7 +20,6 @@ describe('TwigletModelViewComponent', () => {
   let component: TwigletModelViewComponent;
   let fixture: ComponentFixture<TwigletModelViewComponent>;
   const stateServiceStubbed = stateServiceStub();
-  let compRef;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
@@ -39,28 +38,17 @@ describe('TwigletModelViewComponent', () => {
     stateServiceStubbed.twiglet.loadTwiglet('name1');
     fixture = TestBed.createComponent(TwigletModelViewComponent);
     component = fixture.componentInstance;
-    compRef = fixture.componentRef.hostView['internalView']['compView_0'];
     fixture.detectChanges();
     component.twiglet = fullTwigletMap();
     component.twigletModel = fullTwigletModelMap();
-    component.nodes = [{
-      attrs: [],
-      id: 'firstNode',
-      name: 'firstNodeName',
-      radius: 10,
-      type: 'ent1',
-      x: 100,
-      y: 100,
-    },
-    {
-      attrs: [],
-      id: 'secondNode',
-      name: 'secondNodeName',
-      radius: 10,
-      type: 'ent2',
-      x: 200,
-      y: 300,
-    }];
+    component.inTwiglet = [
+      { inTwiglet: false, type: 'type1' },
+      { inTwiglet: true, type: 'type2' },
+      { inTwiglet: false, type: 'type3' },
+      { inTwiglet: false, type: 'type4' },
+      { inTwiglet: false, type: 'type5' },
+      { inTwiglet: true, type: 'type6' }
+    ];
     component.buildForm();
     fixture.detectChanges();
   });
@@ -178,7 +166,7 @@ describe('TwigletModelViewComponent', () => {
       const blankEntityForm = component.form.controls['blankEntity'] as FormGroup;
       blankEntityForm.controls['type'].markAsDirty();
       component.onValueChanged();
-      compRef.changeDetectorRef.markForCheck();
+      component['cd'].markForCheck();
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelector('.alert-danger')).toBeTruthy();
     });
@@ -187,7 +175,7 @@ describe('TwigletModelViewComponent', () => {
       component.form.controls['entities']['controls'][0].controls.type.patchValue('');
       component.form.controls['entities']['controls'][0].controls.type.markAsDirty();
       component.onValueChanged();
-      compRef.changeDetectorRef.markForCheck();
+      component['cd'].markForCheck();
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelector('.alert-danger')).toBeTruthy();
     });

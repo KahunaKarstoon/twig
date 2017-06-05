@@ -2,11 +2,10 @@ import { NgModule } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpModule } from '@angular/http';
-import { RouterModule, Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 import { MarkdownToHtmlModule } from 'markdown-to-html-pipe';
 import { DragulaModule } from 'ng2-dragula';
-import { Ng2PageScrollModule } from 'ng2-page-scroll';
 import { ToastModule } from 'ng2-toastr/ng2-toastr';
 import { TrimValueAccessorModule } from 'ng-trim-value-accessor';
 
@@ -14,7 +13,9 @@ import 'hammerjs';
 
 import { ChangelogListComponent } from './changelog-list/changelog-list.component';
 import { CommitModalComponent } from './commit-modal/commit-modal.component';
+import { DeleteEventConfirmationComponent } from './delete-confirmation/delete-event-confirmation.component';
 import { DeleteModelConfirmationComponent } from './delete-confirmation/delete-model-confirmation.component';
+import { DeleteSequenceConfirmationComponent } from './delete-confirmation/delete-sequence-confirmation.component';
 import { DeleteTwigletConfirmationComponent } from './delete-confirmation/delete-twiglet-confirmation.component';
 import { DeleteViewConfirmationComponent } from './delete-confirmation/delete-view-confirmation.component';
 import { EditModeButtonComponent } from './edit-mode-button/edit-mode-button.component';
@@ -36,12 +37,15 @@ import { router } from './../app.router';
 import { SanitizeHtmlPipe } from './pipes/sanitize-html.pipe';
 import { SliderWithLabelComponent } from './slider-with-label/slider-with-label.component';
 import { SortImmutablePipe } from './pipes/sort-immutable.pipe';
+import { FilterImmutablePipe } from './pipes/filter-immutable.pipe';
 
 @NgModule({
     declarations: [
         ChangelogListComponent,
         CommitModalComponent,
+        DeleteEventConfirmationComponent,
         DeleteModelConfirmationComponent,
+        DeleteSequenceConfirmationComponent,
         DeleteTwigletConfirmationComponent,
         DeleteViewConfirmationComponent,
         EditModeButtonComponent,
@@ -62,10 +66,13 @@ import { SortImmutablePipe } from './pipes/sort-immutable.pipe';
         SanitizeHtmlPipe,
         SliderWithLabelComponent,
         SortImmutablePipe,
+        FilterImmutablePipe,
     ],
     entryComponents: [
         CommitModalComponent,
+        DeleteEventConfirmationComponent,
         DeleteModelConfirmationComponent,
+        DeleteSequenceConfirmationComponent,
         DeleteTwigletConfirmationComponent,
         DeleteViewConfirmationComponent,
         LoadingSpinnerComponent,
@@ -75,13 +82,16 @@ import { SortImmutablePipe } from './pipes/sort-immutable.pipe';
         ChangelogListComponent,
         CommitModalComponent,
         DatePipe,
+        DeleteEventConfirmationComponent,
         DeleteModelConfirmationComponent,
+        DeleteSequenceConfirmationComponent,
         DeleteTwigletConfirmationComponent,
         DeleteViewConfirmationComponent,
         DragulaModule,
         EditModeButtonComponent,
         FilterNodesPipe,
         FilterByObjectPipe,
+        FilterImmutablePipe,
         FontAwesomeIconPickerComponent,
         FontAwesomeToggleButtonComponent,
         FormControlsSortPipe,
@@ -109,7 +119,6 @@ import { SortImmutablePipe } from './pipes/sort-immutable.pipe';
         FormsModule,
         HttpModule,
         MarkdownToHtmlModule,
-        Ng2PageScrollModule.forRoot(),
         NgbModule.forRoot(),
         ReactiveFormsModule,
         router,

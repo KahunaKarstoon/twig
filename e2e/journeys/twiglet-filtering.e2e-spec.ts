@@ -11,10 +11,17 @@ describe('Filtering Twiglets', () => {
 
   beforeAll(() => {
     page = new TwigPage();
+    page.navigateTo();
+    page.header.twigletTab.deleteTwigletIfNeeded(twigletName, page);
+    browser.waitForAngular();
     createDefaultJsonImportedTwiglet(page);
+    browser.waitForAngular();
   });
 
   afterAll(() => {
+    browser.manage().logs().get('browser').then(function(browserLog) {
+      console.log('log: ' + require('util').inspect(browserLog));
+    });
     deleteDefaultJsonImportedTwiglet(page);
   });
 
@@ -57,4 +64,3 @@ describe('Filtering Twiglets', () => {
     expect(page.nodeList.entities.ent5.count).toEqual(2);
   });
 });
-

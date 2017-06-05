@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { AfterViewChecked, ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbAlert, NgbTabsetConfig } from '@ng-bootstrap/ng-bootstrap';
@@ -9,6 +8,7 @@ import { BehaviorSubject } from 'rxjs/Rx';
 import { D3Node, Link } from '../../../non-angular/interfaces';
 import { ModelNodeAttribute } from './../../../non-angular/interfaces/model/index';
 import { StateService } from '../../state.service';
+import { CustomValidators } from './../../../non-angular/utils/formValidators';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -20,11 +20,11 @@ export class EditNodeModalComponent implements OnInit, AfterViewChecked {
   id: string;
   twiglet: Map<string, any>;
   twigletModel: Map<string, any>;
+  userState: Map<string, any> = Map({});
   form: FormGroup;
   node: Map<string, any>;
   links: Map<string, Map<string, any>>;
   entityNames: PropertyKey[];
-  datePipe = new DatePipe('en-US');
   nodeFormErrors = [ 'name' ];
   attributeFormErrors = [ 'key', 'value' ];
   validationErrors = Map({});
@@ -37,7 +37,10 @@ export class EditNodeModalComponent implements OnInit, AfterViewChecked {
     },
     newNode: 'Please click the Submit button to save the changes to your new node.',
     value: {
+      float: 'must be a number',
+      integer: 'must be an integer',
       required: 'this is a required field',
+      timestamp: 'must be a valid date format',
     },
   };
 
@@ -47,9 +50,10 @@ export class EditNodeModalComponent implements OnInit, AfterViewChecked {
   }
 
   ngOnInit() {
-    this.node = this.twiglet.get('nodes').get(this.id);
+    const twigletEntities = this.twigletModel.get('entities').toJS();
+    this.node = this.twiglet.get('nodes').get(this.id) || this.node;
     this.links = this.twiglet.get('links');
-    this.entityNames = Reflect.ownKeys(this.twigletModel.get('entities').toJS());
+    this.entityNames = Reflect.ownKeys(twigletEntities);
     this.buildForm();
   }
 
@@ -93,11 +97,9 @@ export class EditNodeModalComponent implements OnInit, AfterViewChecked {
         array.push(this.createAttribute(attr));
         return array;
       }, [])),
-      end_at: [this.datePipe.transform(node.end_at, 'yyyy-MM-dd')],
-      location: [node.location],
+      gravityPoint: [node.gravityPoint || ''],
+      location: [node.location || ''],
       name: [node.name, Validators.required],
-      size: [node.size],
-      start_at: [this.datePipe.transform(node.start_at, 'yyyy-MM-dd')],
       type: [node.type],
     });
     this.addAttribute();
@@ -181,8 +183,8 @@ export class EditNodeModalComponent implements OnInit, AfterViewChecked {
         this.stateService.twiglet.removeLink({ id: link.get('id') });
       }
     });
-    this.stateService.twiglet.removeNode({id: this.id});
     this.activeModal.close();
+    this.stateService.twiglet.removeNode({id: this.id});
   }
 
   closeModal() {
@@ -204,5 +206,8 @@ function createValueArray(value, required, dataType) {
     validators.push(Validators.required);
   }
   returner.push(validators);
+  if (dataType && dataType !== 'string') {
+    validators.push(CustomValidators[dataType]);
+  }
   return returner;
 }

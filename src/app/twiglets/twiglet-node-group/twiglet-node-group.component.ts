@@ -1,12 +1,12 @@
-import { NodeInfoComponent } from './../node-info/node-info.component';
-import { Map } from 'immutable';
 import { AfterViewChecked, ChangeDetectorRef, ChangeDetectionStrategy, Component, Input, OnChanges,
   OnInit, SimpleChanges, ViewChildren } from '@angular/core';
-import { NgbPanelChangeEvent } from '@ng-bootstrap/ng-bootstrap';
-
-import { StateService } from './../../state.service';
-import { D3Node } from './../../../non-angular/interfaces/twiglet/node';
 import { DOCUMENT } from '@angular/platform-browser';
+import { NgbPanelChangeEvent } from '@ng-bootstrap/ng-bootstrap';
+import { Map } from 'immutable';
+
+import { D3Node } from './../../../non-angular/interfaces/twiglet/node';
+import { NodeInfoComponent } from './../node-info/node-info.component';
+import { StateService } from './../../state.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -55,7 +55,10 @@ export class TwigletNodeGroupComponent implements OnInit, OnChanges, AfterViewCh
   ngAfterViewChecked() {
     if (this.needToScroll) {
       this.needToScroll = false;
-      this.elementRef.nativeElement.querySelector(`#node-card-${this.currentNode}-header`).scrollIntoView();
+      const active = this.elementRef.nativeElement.querySelector(`#node-card-${this.currentNode}-header`);
+      if (active) {
+        active.scrollIntoView();
+      }
     }
     this.viewNodeCount = this.createdNodes.toArray().length;
     this.cd.markForCheck();
@@ -69,8 +72,17 @@ export class TwigletNodeGroupComponent implements OnInit, OnChanges, AfterViewCh
   highlight(id) {
     this.stateService.userState.setHighLightedNode(id);
   }
+
   unhighlight() {
     this.stateService.userState.setHighLightedNode(null);
+  }
+
+  // check for overriding _color property on node, and if none exists apply default type color
+  getColor(type, node) {
+    if (node._color) {
+      return node._color;
+    }
+    return type[0].color;
   }
 
   beforeChange($event: NgbPanelChangeEvent) {

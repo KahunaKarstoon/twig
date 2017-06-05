@@ -1,15 +1,13 @@
-import { MockBackend } from '@angular/http/testing';
-import { BehaviorSubject, ReplaySubject } from 'rxjs/Rx';
-import { TestBed, async, inject } from '@angular/core/testing';
+import { async, inject, TestBed } from '@angular/core/testing';
 import { BaseRequestOptions, Http, HttpModule, Response, ResponseOptions } from '@angular/http';
+import { MockBackend } from '@angular/http/testing';
 import { fromJS, Map, List } from 'immutable';
-import { Observable } from 'rxjs/Rx';
+import { BehaviorSubject, Observable, ReplaySubject } from 'rxjs/Rx';
 
-import { successfulMockBackend } from './../../testHelpers/mockBackEnd';
-import { mockToastr } from '../../testHelpers';
-import { TwigletService } from './index';
 import { D3Node, Link } from '../../interfaces/twiglet';
+import { mockToastr, successfulMockBackend } from '../../testHelpers';
 import { StateCatcher } from '../index';
+import { TwigletService } from './index';
 import { UserStateService } from '../userState';
 
 describe('twigletService', () => {
@@ -99,6 +97,15 @@ describe('twigletService', () => {
     it('alphabetizes the twiglet names', () => {
       twigletService.twiglets.subscribe((response: List<Map<string, any>>) => {
         expect(response.get(0).get('name')).toEqual('name1');
+      });
+    });
+  });
+
+  describe('clearCurrentTwiglet', () => {
+    it('sets the current twiglet to a blank', () => {
+      twigletService.clearCurrentTwiglet();
+      twigletService.observable.subscribe(twiglet => {
+        expect(twiglet.get('name')).toEqual('');
       });
     });
   });
@@ -346,6 +353,17 @@ describe('twigletService', () => {
         twigletService.clearNodes();
         twigletService.observable.subscribe(twiglet => {
           expect(twiglet.get('nodes').size).toEqual(0);
+        });
+      });
+    });
+  });
+
+  describe('updateNodeParam', () => {
+    it('can update a specific parameter', () => {
+      twigletService.loadTwiglet('name1').subscribe(() => {
+        twigletService.updateNodeParam('firstNode', 'gravity', 'some id');
+        twigletService.observable.subscribe(twiglet => {
+          expect(twiglet.getIn(['nodes', 'firstNode', 'gravity'])).toEqual('some id');
         });
       });
     });

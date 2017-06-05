@@ -3,6 +3,7 @@ import { Attribute } from '../twiglet/attribute';
 export interface UserState {
   activeModel?: boolean;
   activeTwiglet?: boolean;
+  addingGravityPoints?: boolean;
   autoConnectivity?: ConnectType;
   autoScale?: ScaleType;
   bidirectionalLinks?: boolean;
@@ -19,7 +20,11 @@ export interface UserState {
   forceLinkStrength?: number;
   forceVelocityDecay?: number;
   formValid?: boolean;
+  gravityPoints?: {
+    [key: string]: GravityPoint;
+  };
   isEditing?: boolean;
+  isEditingGravity?: boolean;
   linkType?: LinkType;
   ping?: Object;
   nodeSizingAutomatic?: boolean;
@@ -42,3 +47,12 @@ export type ScaleType = 'linear' | 'sqrt' | 'power';
 export type LinkType = 'path' | 'line';
 
 export type Scale = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+
+export interface GravityPoint {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  sx?: number;
+  sy?: number;
+}

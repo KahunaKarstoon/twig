@@ -1,8 +1,9 @@
-import { AfterContentInit, ChangeDetectionStrategy, Component, ElementRef, HostListener, OnDestroy, OnInit, NgZone } from '@angular/core';
+import { AfterContentInit, ChangeDetectionStrategy, Component, ElementRef, HostListener, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Params } from '@angular/router';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { D3, D3Service, ForceLink, Selection, Simulation } from 'd3-ng2-service';
 import { fromJS, List, Map, OrderedMap } from 'immutable';
+import { ToastsManager } from 'ng2-toastr/ng2-toastr';
 import { element } from 'protractor';
 import { clone, merge } from 'ramda';
 import { Subscription } from 'rxjs/Subscription';
@@ -15,10 +16,18 @@ import {
 import { StateService } from '../../state.service';
 
 // Interfaces
-import { D3Node, isD3Node, Link, Model, ModelEntity, ModelNode, UserState } from '../../../non-angular/interfaces';
+import { D3Node, GravityPoint, isD3Node, Link, Model, ModelEntity,
+  ModelNode, MultipleGravities, UserState } from '../../../non-angular/interfaces';
+
+import { multipleGravities } from '../../../non-angular/d3Forces';
 
 // Event Handlers
-import { addAppropriateMouseActionsToLinks, addAppropriateMouseActionsToNodes, handleUserStateChanges } from './handleUserStateChanges';
+import {
+  addAppropriateMouseActionsToGravityPoints,
+  addAppropriateMouseActionsToLinks,
+  addAppropriateMouseActionsToNodes,
+  handleUserStateChanges } from './handleUserStateChanges';
+
 import {
   mouseMoveOnCanvas,
   mouseUpOnCanvas,
@@ -27,9 +36,9 @@ import {
 // helpers
 import { FilterByObjectPipe } from './../../shared/pipes/filter-by-object.pipe';
 import { FilterNodesPipe } from './../../shared/pipes/filter-nodes.pipe';
-import { getColorFor, getNodeImage } from './nodeAttributesToDOMAttributes';
+import { getColorFor, getNodeImage, getSizeFor } from './nodeAttributesToDOMAttributes';
 import { handleGraphMutations } from './handleGraphMutations';
-import { keepNodeInBounds, scaleNodes } from './locationHelpers';
+import { keepNodeInBounds, scaleNodes, setDepths } from './locationHelpers';
 import { toggleNodeCollapsibility } from './collapseAndFlowerNodes';
 
 @Component({
@@ -39,6 +48,7 @@ import { toggleNodeCollapsibility } from './collapseAndFlowerNodes';
   templateUrl: './twiglet-graph.component.html',
 })
 export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestroy {
+  distance = 1;
   /**
    * Need to keep track of if the alt-key is currently depressed for collapsibility.
    *
@@ -98,7 +108,17 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
    */
   linksG: Selection<SVGGElement, any, null, undefined>;
 
+  /**
+   * The svg grouping that contains all of the gravity points (that way gravity points are always below links )
+   *
+   * @type {Selection<SVGGElement, any,}
+   * @memberOf TwigletGraphComponent
+   */
+  gravityPointsG: Selection<SVGGElement, any, null, undefined>;
+
+  // The directional arrows that appear on line links
   arrows;
+
   /**
    * The actual <g> elements that represent all of the nodes in this.currentlyGraphedNodes
    *
@@ -106,13 +126,23 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
    * @memberOf TwigletGraphComponent
    */
   nodes: Selection<any, {}, SVGGElement, any>;
+
   /**
-   * The actual <g> elements that represent all of the nodes in this.currentlyGraphedNodes
+   * The actual <g> elements that represent all of the links
    *
    * @type {Selection<any, {}, SVGSVGElement, any>}
    * @memberOf TwigletGraphComponent
    */
   links: Selection<any, {}, SVGGElement, any>;
+
+  /**
+   * The actual <g> elements that represent all of the gravity points
+   *
+   * @type {Selection<any, {}, SVGSVGElement, any>}
+   * @memberOf TwigletGraphComponent
+   */
+  gravityPoints: Selection<any, {}, SVGGElement, any>;
+
   /**
    * All of the nodes, regardless of whether they are graphed or not.
    *
@@ -120,6 +150,7 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
    * @memberOf TwigletGraphComponent
    */
   allNodes: D3Node[];
+
   /**
    * Same as all nodes except in object form for easy lookup.
    *
@@ -127,6 +158,7 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
    * @memberOf TwigletGraphComponent
    */
   allNodesObject: { [key: string]: D3Node };
+
   /**
    * The nodes that D3 is currently graphing (allNodes without the hiddens.)
    *
@@ -134,6 +166,7 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
    * @memberOf TwigletGraphComponent
    */
   currentlyGraphedNodes: D3Node[] = [];
+
   /**
    * All of the links, ragardless of whether they are graphed or not.
    *
@@ -141,6 +174,7 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
    * @memberOf TwigletGraphComponent
    */
   allLinks: Link[];
+
   /**
    * Same as above but in object form.
    *
@@ -148,13 +182,12 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
    * @memberOf TwigletGraphComponent
    */
   allLinksObject: { [key: string]: Link };
-  /**
-   * All of the links that should be graphed in array style to feed to force graph.
-   *
-   * @type {Link[]}
-   * @memberOf TwigletGraphComponent
-   */
+
+  // array of all the gravity points
+  allGravityPoints = [];
+
   margin = 20;
+
   /**
    * The model currently being used on the twiglet.
    *
@@ -162,6 +195,7 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
    * @memberOf TwigletGraphComponent
    */
   model: Model;
+
   /**
    * The Model as it's raw map.
    *
@@ -169,6 +203,7 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
    * @memberOf TwigletGraphComponent
    */
   modelMap: Map<string, any>;
+
   /**
    * The link that we are in the middle of creating.
    *
@@ -176,6 +211,7 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
    * @memberOf TwigletGraphComponent
    */
   tempLink: Link;
+
   /**
    * A reference to the temp-link so we don't have to keep on selecting it.
    *
@@ -183,13 +219,23 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
    * @memberOf TwigletGraphComponent
    */
   tempLinkLine: Selection<SVGLineElement, any, null, undefined>;
+
   /**
-   * the currently selected node for dragging and linking
+   * the currently selected node for linking
    *
    * @type {D3Node}
    * @memberOf TwigletGraphComponent
    */
   tempNode: D3Node;
+
+  /**
+   * If a node is being dragged.
+   *
+   *
+   * @memberof TwigletGraphComponent
+   */
+  isDragging = false;
+
   /**
    * The current User State of our app
    *
@@ -200,8 +246,10 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
     filters: Map({
         attributes: List([]),
         types: Map({}),
-      })
+      }),
+    gravityPoints: Map({})
   });
+
   /**
    * Where the keys are D3Node.ids and the values are an array of link ids. For fast backwards lookup
    * this is the map of sources to Links.
@@ -210,6 +258,7 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
    * @memberOf TwigletGraphComponent
    */
   linkSourceMap: { [key: string]: string[] } = {};
+
   /**
    * Where the keys are D3Node.ids and hte values are an array of link ids. For fast backwards lookup
    * this is a map of the targets to Links.
@@ -218,6 +267,7 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
    * @memberOf TwigletGraphComponent
    */
   linkTargetMap: { [key: string]: string[] } = {};
+
   /**
    * The current twiglet id so we can bring the alpha back up to reset everything.
    *
@@ -225,6 +275,7 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
    * @memberOf TwigletGraphComponent
    */
   currentTwigletId: string;
+
   /**
    * Holds the userStateSubscription so that we can unsubscribe on destroy
    *
@@ -232,6 +283,7 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
    * @memberOf TwigletGraphComponent
    */
   userStateSubscription: Subscription;
+
   /**
    * Holds the model service subscription so we can unsubscribe on destroy.
    *
@@ -239,6 +291,7 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
    * @memberOf TwigletGraphComponent
    */
   modelServiceSubscription: Subscription;
+
   /**
    * The raw twiglet for passing to other components as needed.
    *
@@ -246,6 +299,7 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
    * @memberOf TwigletGraphComponent
    */
   twiglet: Map<string, any> = Map({});
+
   /**
    * Holds the twiglet service subscription so we can unsubscribe on destroy
    *
@@ -270,7 +324,8 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
       public stateService: StateService,
       public modalService: NgbModal,
       private route: ActivatedRoute,
-      private ngZone: NgZone,
+      public ngZone: NgZone,
+      public toastr: ToastsManager,
     ) {
     this.allNodes = [];
     this.allLinks = [];
@@ -283,25 +338,19 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
    */
   ngOnInit() {
     this.d3Svg = this.d3.select(this.element.nativeElement).select<SVGSVGElement>('svg');
-    // Zooming feature which is getting in the way of editing right now.
-    // this.d3Svg
-    //   .call(this.d3.zoom()
-    //     .scaleExtent([0.5, 4])
-    //     .on('zoom', () => {
-    //       if (!this.userState.get('isEditing')) {
-    //         this.nodesG.attr('transform', this.d3.event.transform);
-    //         this.linksG.attr('transform', this.d3.event.transform);
-    //       }
-    //     }));
     this.nodesG = this.d3Svg.select<SVGGElement>('#nodesG');
     this.linksG = this.d3Svg.select<SVGGElement>('#linksG');
+    this.gravityPointsG = this.d3Svg.select<SVGGElement>('#gravityPointsG');
     this.arrows = this.d3Svg.append('defs');
     this.nodes = this.nodesG.selectAll('.node-group');
     this.links = this.linksG.selectAll('.link-group');
+    this.gravityPoints = this.gravityPointsG.selectAll('.gravity-point-group');
     this.d3Svg.on('mousemove', mouseMoveOnCanvas(this));
-    this.simulation = this.d3.forceSimulation([])
-      .on('tick', this.ticked.bind(this))
-      .on('end', this.publishNewCoordinates.bind(this));
+    this.ngZone.runOutsideAngular(() => {
+      this.simulation = this.d3.forceSimulation([])
+        .on('end', this.simulationEnded.bind(this))
+        .on('tick', this.ticked.bind(this));
+    });
     this.updateSimulation();
     // Shouldn't be often but these need to be after everything else is initialized
     // So that pre-loaded nodes can be rendered.
@@ -326,6 +375,7 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
       if ((this.currentTwiglet !== this.originalTwiglet) && !params['view']) {
         this.originalTwiglet = this.currentTwiglet;
         this.stateService.userState.resetAllDefaults();
+        this.stateService.userState.clearCurrentView();
       }
       if (params['view']) {
         this.stateService.userState.setCurrentView(params['view']);
@@ -342,16 +392,23 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
   }
 
   updateSimulation() {
-    this.simulation
-    .force('x', this.d3.forceX(this.width / 2).strength(this.userState.get('forceGravityX')))
-    .force('y', this.d3.forceY(this.height / 2).strength(this.userState.get('forceGravityY')))
-    .force('link', (this.simulation.force('link') as ForceLink<any, any> || this.d3.forceLink())
-            .distance(this.userState.get('forceLinkDistance') * this.userState.get('scale'))
-            .strength(this.userState.get('forceLinkStrength')))
-    .force('charge', this.d3.forceManyBody().strength(this.userState.get('forceChargeStrength') * this.userState.get('scale')))
-    .force('collide', this.d3.forceCollide().radius((d3Node: D3Node) => d3Node.radius + 15).iterations(16));
-    this.restart();
-    this.simulation.alpha(0.9).restart();
+    this.ngZone.runOutsideAngular(() => {
+      const distance = +this.userState.get('separationDistance');
+      this.simulation.restart()
+      .force('multipleGravities', multipleGravities().centerX(this.width / 2).centerY(this.height / 2)
+        .strengthX(isNaN(this.userState.get('forceGravityX')) ? 0.1 : this.userState.get('forceGravityX'))
+        .strengthY(isNaN(this.userState.get('forceGravityY')) ? 0.1 : this.userState.get('forceGravityY'))
+        .gravityPoints(this.userState.get('gravityPoints') || {}))
+      .force('link', (this.simulation.force('link') as ForceLink<any, any> || this.d3.forceLink())
+              .distance(this.userState.get('forceLinkDistance') * this.userState.get('scale'))
+              .strength(this.userState.get('forceLinkStrength')))
+      .force('charge', this.d3.forceManyBody().strength(this.userState.get('forceChargeStrength') * this.userState.get('scale')))
+      .force('collide', this.d3.forceCollide()
+        .radius((d3Node: D3Node) => {
+          return d3Node.radius + distance;
+        }).iterations(4));
+      this.restart();
+    });
   }
 
   ngAfterContentInit() {
@@ -364,111 +421,177 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
    */
   restart() {
     if (this.d3Svg) {
-      this.ngZone.runOutsideAngular(() => {
-        this.d3Svg.on('mouseup', null);
+      this.d3Svg.on('mouseup', null);
 
-        const filterByObject = new FilterByObjectPipe();
-        this.currentlyGraphedNodes = filterByObject.transform(this.allNodes, this.twiglet.get('links'), this.userState.get('filters'))
-        .filter((d3Node: D3Node) => {
-          return !d3Node.hidden;
-        });
-        scaleNodes.bind(this)(this.currentlyGraphedNodes);
+      const filterByObject = new FilterByObjectPipe();
+      this.currentlyGraphedNodes = filterByObject.transform(this.allNodes, this.twiglet.get('links'), this.userState.get('filters'))
+      .filter((d3Node: D3Node) => {
+        return !d3Node.hidden;
+      });
+      scaleNodes.bind(this)(this.currentlyGraphedNodes);
 
-        this.nodes = this.nodesG.selectAll('.node-group').data(this.currentlyGraphedNodes, (d: D3Node) => d.id);
+      this.nodes.each((node: D3Node) => {
+        const existingNode = this.allNodesObject[node.id];
+        if (existingNode) {
+          let group;
+          if (node.type !== existingNode.type) {
+            group = this.d3.select(`#id-${node.id}`);
+            group.select('.node-image')
+            .text(getNodeImage.bind(this)(existingNode));
+          }
+          group = group || this.d3.select(`#id-${node.id}`);
+          group.select('.node-image').attr('font-size', `${getSizeFor.bind(this)(existingNode)}px`);
+          if (node.name !== existingNode.name) {
+            group = group || this.d3.select(`#id-${node.id}`);
+            group.select('.node-name').text(existingNode.name);
+          }
+          group = group || this.d3.select(`#id-${node.id}`);
+          group.select('.node-image')
+            .attr('stroke', getColorFor.bind(this)(existingNode))
+            .attr('fill', getColorFor.bind(this)(existingNode));
+          group.select('.node-name')
+            .attr('stroke', getColorFor.bind(this)(existingNode));
+        }
+      });
 
-        /**
-         * exit affects all of the elements on the svg that do not have a corresponding node in
-         * this.currentlyGraphedNodes anymore. Remove them from the screen.
-         */
-        this.nodes.exit().remove();
+      this.nodes = this.nodesG.selectAll('.node-group').data(this.currentlyGraphedNodes, (d: D3Node) => d.id);
 
-        /**
-         * Enter affects all of the nodes in our array (this.currentlyGraphedNodes) that do not already
-         * have an existing <g> on the svg. This sets up all of the new elements
-         */
-        const nodeEnter =
-          this.nodes
-            .enter()
-            .append('g')
-            .attr('id', (d3Node: D3Node) => `id-${d3Node.id}`)
-            .attr('class', 'node-group')
-            .attr('transform', (d3Node: D3Node) => `translate(${d3Node.x || 0},${d3Node.y || 0})`)
-            .attr('fill', 'white')
-            .on('click', (d3Node: D3Node) => this.stateService.userState.setCurrentNode(d3Node.id));
+      /**
+       * exit affects all of the elements on the svg that do not have a corresponding node in
+       * this.currentlyGraphedNodes anymore. Remove them from the screen.
+       */
+      this.nodes.exit().remove();
 
-        addAppropriateMouseActionsToNodes.bind(this)(nodeEnter);
-
-        nodeEnter.append('text')
-          .attr('class', 'node-image')
-          .attr('y', 0)
-          .attr('font-size', (d3Node: D3Node) => `${d3Node.radius}px`)
-          .attr('stroke', (d3Node: D3Node) => getColorFor.bind(this)(d3Node))
-          .attr('fill', (d3Node: D3Node) => getColorFor.bind(this)(d3Node))
-          .attr('text-anchor', 'middle')
-          .text((d3Node: D3Node) => getNodeImage.bind(this)(d3Node));
-
-        nodeEnter.append('text')
-          .attr('class', 'node-name')
-          .classed('invisible', !this.userState.get('showNodeLabels'))
-          .attr('dy', (d3Node: D3Node) => d3Node.radius / 2 + 12)
-          .attr('stroke', (d3Node: D3Node) => getColorFor.bind(this)(d3Node))
-          .attr('text-anchor', 'middle')
-          .text((d3Node: D3Node) => d3Node.name);
-
-        this.nodes = nodeEnter.merge(this.nodes);
-
-        this.d3Svg.on('mouseup', mouseUpOnCanvas(this));
-
-        const linkType = this.userState.get('linkType');
-
-        // Need to make this a hashset for node lookup.
-        const graphedLinks = this.allLinks.filter((link: Link) => {
-          return !link.hidden
-            && this.currentlyGraphedNodes.includes(link.source as D3Node)
-            && this.currentlyGraphedNodes.includes(link.target as D3Node);
-        });
-
-        this.links = this.linksG.selectAll('.link-group').data(graphedLinks, (l: Link) => l.id);
-
-        this.links.exit().remove();
-
-        const linkEnter = this.links
+      /**
+       * Enter affects all of the nodes in our array (this.currentlyGraphedNodes) that do not already
+       * have an existing <g> on the svg. This sets up all of the new elements
+       */
+      const nodeEnter =
+        this.nodes
           .enter()
           .append('g')
-          .attr('id', (link: Link) => `id-${link.id}`)
-          .attr('class', 'link-group');
+          .attr('id', (d3Node: D3Node) => `id-${d3Node.id}`)
+          .attr('class', 'node-group')
+          .attr('transform', (d3Node: D3Node) => `translate(${d3Node.x || 0},${d3Node.y || 0})`)
+          .attr('fill', 'white')
+          .on('click', (d3Node: D3Node) => this.stateService.userState.setCurrentNode(d3Node.id));
 
-        linkEnter.append(linkType)
-          .attr('class', 'link');
+      addAppropriateMouseActionsToNodes.bind(this)(nodeEnter);
 
-        linkEnter.append('circle')
-          .attr('class', 'circle')
-          .classed('invisible', !this.userState.get('isEditing'))
-          .attr('r', 10);
+      nodeEnter.append('text')
+        .attr('class', 'node-image')
+        .attr('y', 0)
+        .attr('font-size', (d3Node: D3Node) => `${getSizeFor.bind(this)(d3Node)}px`)
+        .attr('stroke', (d3Node: D3Node) => getColorFor.bind(this)(d3Node))
+        .attr('fill', (d3Node: D3Node) => getColorFor.bind(this)(d3Node))
+        .attr('text-anchor', 'middle')
+        .text((d3Node: D3Node) => getNodeImage.bind(this)(d3Node));
 
-        addAppropriateMouseActionsToLinks.bind(this)(linkEnter);
+      nodeEnter.append('text')
+        .attr('class', 'node-name')
+        .classed('invisible', !this.userState.get('showNodeLabels'))
+        .attr('dy', (d3Node: D3Node) => d3Node.radius / 2 + 12)
+        .attr('stroke', (d3Node: D3Node) => getColorFor.bind(this)(d3Node))
+        .attr('text-anchor', 'middle')
+        .text((d3Node: D3Node) => d3Node.name);
 
-        linkEnter.append('text')
+      this.nodes = nodeEnter.merge(this.nodes);
+
+      this.d3Svg.on('mouseup', mouseUpOnCanvas(this));
+
+      const linkType = this.userState.get('linkType');
+
+      // Need to make this a hashset for node lookup.
+      const graphedLinks = this.allLinks.filter((link: Link) => {
+        return !link.hidden
+          && this.currentlyGraphedNodes.includes(link.source as D3Node)
+          && this.currentlyGraphedNodes.includes(link.target as D3Node);
+      });
+
+      setDepths(this, graphedLinks);
+
+      this.links = this.linksG.selectAll('.link-group').data(graphedLinks, (l: Link) => l.id);
+
+      this.links.exit().remove();
+
+      const linkEnter = this.links
+        .enter()
+        .append('g')
+        .attr('id', (link: Link) => `id-${link.id}`)
+        .attr('class', 'link-group');
+
+      linkEnter.append(linkType)
+        .attr('class', 'link');
+
+      linkEnter.append('circle')
+        .attr('class', 'circle')
+        .classed('invisible', !this.userState.get('isEditing'))
+        .attr('r', 10);
+
+      addAppropriateMouseActionsToLinks.bind(this)(linkEnter);
+
+      linkEnter.append('text')
+        .attr('text-anchor', 'middle')
+        .attr('class', 'link-name')
+        .classed('invisible', !this.userState.get('showLinkLabels'))
+        .text((link: Link) => link.association);
+
+      this.links = linkEnter.merge(this.links);
+
+      if (this.userState.get('linkType') === 'line') {
+        this.addArrows();
+        this.links.attr('marker-end', 'url(#relation)');
+      }
+
+      this.gravityPoints = this.gravityPointsG.selectAll('.gravity-point-group')
+        .data([], (gravityPoint: GravityPoint) => gravityPoint.name);
+
+      this.gravityPoints.exit().remove();
+
+      if (this.userState.get('gravityPoints').size) {
+        const gravityPointsArray = this.userState.get('gravityPoints').valueSeq().toJS();
+
+        this.gravityPoints = this.gravityPointsG.selectAll('.gravity-point-group')
+          .data(gravityPointsArray, (gravityPoint: GravityPoint) => gravityPoint.id);
+
+        this.gravityPoints.exit().remove();
+
+        const gravityPointsEnter = this.gravityPoints
+          .enter()
+          .append('g')
+          .attr('id', (gravityPoint: GravityPoint) => `id-${gravityPoint.id}`)
+          .attr('class', 'gravity-point-group')
+          .attr('transform', (gravityPoint: GravityPoint) => `translate(${gravityPoint.x || 0},${gravityPoint.y || 0})`);
+
+        gravityPointsEnter.append('circle')
+          .attr('class', 'gravity-circle')
+          .attr('r', 30);
+
+        addAppropriateMouseActionsToGravityPoints.bind(this)(gravityPointsEnter);
+
+        gravityPointsEnter.append('text')
+          .attr('class', 'gravity-point-name')
           .attr('text-anchor', 'middle')
-          .attr('class', 'link-name')
-          .classed('invisible', !this.userState.get('showLinkLabels'))
-          .text((link: Link) => link.association);
+          .text((gravityPoint: GravityPoint) => gravityPoint.name);
 
-        if (this.userState.get('linkType') === 'line') {
-          this.addArrows();
-        }
+        this.gravityPoints = gravityPointsEnter.merge(this.gravityPoints);
 
-        this.links = linkEnter.merge(this.links);
+      }
 
-        /**
-         * Restart the simulation so that nodes can reposition themselves.
-         */
+      /**
+       * Restart the simulation so that nodes can reposition themselves.
+       */
+      this.ngZone.runOutsideAngular(() => {
         if (!this.userState.get('isEditing')) {
-          this.simulation.alpha(0.9);
+          this.stateService.userState.setSimulating(true);
+          this.simulation.alpha(0.5).alphaTarget(this.userState.get('alphaTarget')).restart();
           this.simulation.nodes(this.currentlyGraphedNodes);
           (this.simulation.force('link') as ForceLink<any, any>).links(graphedLinks)
             .distance(this.userState.get('forceLinkDistance') * this.userState.get('scale'))
             .strength(this.userState.get('forceLinkStrength'));
+        } else {
+          this.updateLinkLocation();
+          this.updateCircleLocation();
         }
       });
     }
@@ -591,12 +714,31 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
   }
 
   /**
+   * Updates the locations of the gravity points on the svg. Called to sync the simulation with the display.
+   * @memberOf TwigletGraphComponent
+   */
+  updateGravityPointLocation() {
+    this.gravityPoints.attr('transform', (gp: GravityPoint) => `translate(${gp.x},${gp.y})`);
+  }
+
+  /**
    * Handles the tick events from d3.
    * @memberOf TwigletGraphComponent
    */
   ticked() {
     this.ngZone.runOutsideAngular(() => {
       this.allNodes.forEach(keepNodeInBounds.bind(this));
+      this.publishNewCoordinates();
+      if (this.userState.get('renderOnEveryTick') || this.isDragging) {
+        this.updateNodeLocation();
+        this.updateLinkLocation();
+      }
+    });
+  }
+
+  simulationEnded() {
+    this.ngZone.runOutsideAngular(() => {
+      this.stateService.userState.setSimulating(false);
       this.updateNodeLocation();
       this.updateLinkLocation();
       this.publishNewCoordinates();
@@ -615,9 +757,13 @@ export class TwigletGraphComponent implements OnInit, AfterContentInit, OnDestro
   onResize() {
     this.width = this.element.nativeElement.offsetWidth;
     this.height = this.element.nativeElement.offsetHeight;
-    this.simulation
-    .force('x', this.d3.forceX(this.width / 2).strength(this.userState.get('forceGravityX')))
-    .force('y', this.d3.forceY(this.height / 2).strength(this.userState.get('forceGravityY')));
+    this.ngZone.runOutsideAngular(() => {
+      const mg = <MultipleGravities>this.simulation.force('multipleGravities');
+      if (mg.centerX) {
+        mg.centerX(this.width / 2).centerY(this.height / 2);
+        this.restart();
+      }
+    });
   }
 
   @HostListener('document:mouseup', [])

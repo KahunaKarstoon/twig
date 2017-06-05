@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, Input, OnInit } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup } from '@angular/forms';
 import { Http } from '@angular/http';
+import { Router } from '@angular/router';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 
 import { handleError } from '../../../non-angular/services-helpers/httpHelpers';
@@ -15,15 +16,19 @@ import { StateService } from './../../state.service';
 export class AboutTwigletModalComponent implements OnInit {
   twigletName: string;
   description: string;
+  currentTwiglet: string;
+  userState;
   editMode = false;
   form: FormGroup;
 
-  constructor(private fb: FormBuilder, public stateService: StateService, public activeModal: NgbActiveModal) {}
+  constructor(private fb: FormBuilder, public stateService: StateService, public activeModal: NgbActiveModal, private router: Router) {}
 
   ngOnInit() {
     this.buildForm();
     // sets the current twiglet to the selected twiglet - this is necessary to save changes to the right twiglet
-    this.stateService.twiglet.loadTwiglet(this.twigletName).subscribe(() => undefined);
+    if (this.currentTwiglet !== this.twigletName) {
+      this.router.navigate(['/twiglet', this.twigletName]);
+    }
   }
 
   buildForm() {

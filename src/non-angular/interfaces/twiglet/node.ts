@@ -1,6 +1,8 @@
 import { ModelNodeAttribute } from './../model/index';
 
 export class D3Node {
+  _color?: string;
+  _size?: number;
   attrs?: Array<ModelNodeAttribute>;
   color?: string;
   collapsed?: boolean;
@@ -11,6 +13,7 @@ export class D3Node {
   fixed?: number;
   fx?: number;
   fy?: number;
+  gravityPoint?: string;
   hidden?: boolean;
   hiddenByFilters?: boolean;
   iconClass?: string;
@@ -21,7 +24,7 @@ export class D3Node {
   px?: number;
   py?: number;
   radius?: number;
-  size?: string;
+  size?: number;
   start_at?: string;
   type?: string;
   sx?: number;

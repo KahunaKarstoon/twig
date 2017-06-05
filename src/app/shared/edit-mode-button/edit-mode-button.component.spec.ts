@@ -12,7 +12,6 @@ import { StateService } from './../../state.service';
 import { stateServiceStub } from '../../../non-angular/testHelpers';
 
 describe('EditModeButtonComponent', () => {
-  let compRef;
   let component: EditModeButtonComponent;
   let fixture: ComponentFixture<EditModeButtonComponent>;
   const stateServiceStubbed = stateServiceStub();
@@ -36,7 +35,6 @@ describe('EditModeButtonComponent', () => {
 
   beforeEach(() => {
     fixture = TestBed.createComponent(EditModeButtonComponent);
-    compRef = fixture.componentRef.hostView['internalView']['compView_0'];
     component = fixture.componentInstance;
     component.userState = Map({
       isEditing: true,
@@ -73,7 +71,7 @@ describe('EditModeButtonComponent', () => {
         isEditing: false,
         mode: 'twiglet',
       });
-      compRef.changeDetectorRef.markForCheck();
+      component['cd'].markForCheck();
       fixture.detectChanges();
     });
 
@@ -104,11 +102,11 @@ describe('EditModeButtonComponent', () => {
       formValid: false,
       isEditing: true,
     });
-    compRef.changeDetectorRef.markForCheck();
+    component['cd'].markForCheck();
     fixture.detectChanges();
-    spyOn(component, 'saveTwiglet');
+    spyOn(component, 'saveChanges');
     fixture.nativeElement.querySelector('.fa-check').click();
-    expect(component.saveTwiglet).not.toHaveBeenCalled();
+    expect(component.saveChanges).not.toHaveBeenCalled();
   });
 
   it('save button is not disabled when form is valid', () => {
@@ -116,11 +114,11 @@ describe('EditModeButtonComponent', () => {
       formValid: true,
       isEditing: true,
     });
-    compRef.changeDetectorRef.markForCheck();
+    component['cd'].markForCheck();
     fixture.detectChanges();
-    spyOn(component, 'saveTwiglet');
+    spyOn(component, 'saveChanges');
     fixture.nativeElement.querySelector('.fa-check').click();
-    expect(component.saveTwiglet).toHaveBeenCalled();
+    expect(component.saveChanges).toHaveBeenCalled();
   });
 
   it('save twiglet opens the commit modal', () => {
@@ -128,7 +126,7 @@ describe('EditModeButtonComponent', () => {
       formValid: true,
       isEditing: true,
     });
-    compRef.changeDetectorRef.markForCheck();
+    component['cd'].markForCheck();
     fixture.detectChanges();
     spyOn(component.modalService, 'open').and.returnValue({ componentInstance: {} });
     fixture.nativeElement.querySelector('.fa-check').click();
@@ -147,7 +145,7 @@ describe('EditModeButtonComponent', () => {
         formValid: true,
         isEditing: true,
       });
-      compRef.changeDetectorRef.markForCheck();
+      component['cd'].markForCheck();
       fixture.detectChanges();
     });
 

@@ -1,3 +1,6 @@
+import { ToastsManager } from 'ng2-toastr/ng2-toastr';
+import { Observable } from 'rxjs/Observable';
+import { ActivatedRoute } from '@angular/router';
 /* tslint:disable:no-unused-variable */
 import { DebugElement, Pipe } from '@angular/core';
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
@@ -9,9 +12,27 @@ import { fromJS } from 'immutable';
 import { D3Node, Link } from '../../../non-angular/interfaces';
 import { handleUserStateChanges } from './handleUserStateChanges';
 import { StateService } from '../../state.service';
-import { testBedSetup } from './twiglet-graph.component.spec';
 import { TwigletGraphComponent } from './twiglet-graph.component';
 import { UserState } from './../../../non-angular/interfaces/userState/index';
+
+import { stateServiceStub, mockToastr } from '../../../non-angular/testHelpers';
+
+const stateServiceStubbed = stateServiceStub();
+stateServiceStubbed.twiglet.updateNodes = () => undefined;
+
+
+const testBedSetup = {
+  declarations: [ TwigletGraphComponent ],
+  imports: [NgbModule.forRoot()],
+  providers: [
+    D3Service,
+    NgbModal,
+    { provide: ActivatedRoute, useValue: { params: Observable.of({name: 'name1'}) } },
+    { provide: StateService, useValue: stateServiceStubbed },
+    { provide: ToastsManager, useValue: mockToastr },
+  ],
+};
+
 
 describe('TwigletGraphComponent:handleUserStateChanges', () => {
   let component: TwigletGraphComponent;
@@ -24,6 +45,7 @@ describe('TwigletGraphComponent:handleUserStateChanges', () => {
   }));
 
   beforeEach(() => {
+    spyOn(stateServiceStubbed.userState, 'setSimulating');
     fixture = TestBed.createComponent(TwigletGraphComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -33,6 +55,14 @@ describe('TwigletGraphComponent:handleUserStateChanges', () => {
       filters: {
         attributes: [],
         types: {},
+      },
+      gravityPoints: {
+        gp1: {
+          id: 'id1', name: 'gp1', x: 100, y: 100,
+        },
+        gp2: {
+          id: 'id2', name: 'gp2', x: 600, y: 1000,
+        }
       },
       isEditing: false,
       linkType: 'line',

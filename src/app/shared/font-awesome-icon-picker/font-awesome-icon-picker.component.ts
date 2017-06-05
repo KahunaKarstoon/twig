@@ -80,7 +80,7 @@ export class FontAwesomeIconPickerComponent implements OnInit {
     if (!$event) {
       this.filteredIcons = iconNamesArray();
     } else {
-      this.filteredIcons = iconNamesArray().filter(icon => icon.includes($event));
+      this.filteredIcons = iconNamesArray().filter(icon => icon.includes($event.toLowerCase()));
     }
     this.resetEndpoints();
     this.updateRenderedArray();
@@ -115,12 +115,18 @@ export class FontAwesomeIconPickerComponent implements OnInit {
     this.show = !this.show;
   }
 
+  inputClick($event) {
+    $event.preventDefault();
+  }
+
   handleEventListenerClick(this: FontAwesomeIconPickerComponent, event: MouseEvent) {
-    if (this.show) {
-      this.show = false;
-      this.removeEventListener();
-    } else {
-      this.removeEventListener();
+    if (event.target['placeholder'] !== 'search') {
+      if (this.show) {
+        this.show = false;
+        this.removeEventListener();
+      } else {
+        this.removeEventListener();
+      }
     }
   }
 

@@ -1,5 +1,5 @@
 import { AfterViewChecked, ChangeDetectionStrategy, Component, Input, OnDestroy, OnInit } from '@angular/core';
-import { FormControl, FormGroup, FormBuilder, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { NgbActiveModal, NgbAlert } from '@ng-bootstrap/ng-bootstrap';
 import { UUID } from 'angular2-uuid';
@@ -117,17 +117,20 @@ export class CreateTwigletModalComponent implements OnInit, AfterViewChecked {
     if (this.form.valid) {
       this.form.value.commitMessage = this.clone.get('name') ? `Cloned ${this.clone.get('name')}` : 'Twiglet Created';
       this.form.value.json = this.fileString;
+      this.stateService.userState.startSpinner();
       this.stateService.twiglet.addTwiglet(this.form.value).subscribe(data => {
         this.stateService.twiglet.updateListOfTwiglets();
+        this.stateService.userState.stopSpinner();
         this.activeModal.close();
-        this.router.navigate(['twiglet', data.name]);
+        this.router.navigate(['twiglet', this.form.value.name]);
         this.toastr.success('Twiglet Created');
       }, handleError.bind(this));
     }
   }
 
   getFiles(event) {
-    const file = event.target.files[0];
+    const file = event.srcElement.files[0];
+    const count = 0;
     const reader = new FileReader();
     reader.onload = (e: FileReaderEvent) => {
       this.fileString = e.target.result;
@@ -204,3 +207,4 @@ interface FileReaderEvent extends Event {
     target: FileReaderEventTarget;
     getMessage(): string;
 }
+;

@@ -1,3 +1,4 @@
+import { SequenceDropdownComponent } from './../twiglets/sequence-dropdown/sequence-dropdown.component';
 import { DebugElement } from '@angular/core';
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -16,6 +17,7 @@ import { SortImmutablePipe } from './../shared/pipes/sort-immutable.pipe';
 import { StateService } from './../state.service';
 import { stateServiceStub } from '../../non-angular/testHelpers';
 
+import { AddGravityPointToggleComponent } from './../twiglets/add-gravity-point-toggle/add-gravity-point-toggle.component';
 import { AddNodeByDraggingButtonComponent } from './../twiglets/add-node-by-dragging-button/add-node-by-dragging-button.component';
 import { ChangelogListComponent } from './../shared/changelog-list/changelog-list.component';
 import { CopyPasteNodeComponent } from './../twiglets/copy-paste-node/copy-paste-node.component';
@@ -25,6 +27,7 @@ import { EditTwigletDetailsComponent } from './../twiglets/edit-twiglet-details/
 import { FontAwesomeToggleButtonComponent } from './../shared/font-awesome-toggle-button/font-awesome-toggle-button.component';
 import { HeaderComponent } from './header.component';
 import { HeaderEnvironmentComponent } from './../twiglets/header-environment/header-environment.component';
+import { HeaderEventsComponent } from './../twiglets/header-events/header-events.component';
 import { HeaderInfoBarComponent } from './../core/header-info-bar/header-info-bar.component';
 import { HeaderModelComponent } from '../models/header-model/header-model.component';
 import { HeaderModelEditComponent } from './../models/header-model-edit/header-model-edit.component';
@@ -45,6 +48,7 @@ describe('HeaderComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       declarations: [
+        AddGravityPointToggleComponent,
         AddNodeByDraggingButtonComponent,
         ChangelogListComponent,
         CopyPasteNodeComponent,
@@ -54,6 +58,7 @@ describe('HeaderComponent', () => {
         FontAwesomeToggleButtonComponent,
         HeaderComponent,
         HeaderEnvironmentComponent,
+        HeaderEventsComponent,
         HeaderInfoBarComponent,
         HeaderModelComponent,
         HeaderModelEditComponent,
@@ -65,6 +70,7 @@ describe('HeaderComponent', () => {
         LoginButtonComponent,
         ModelDropdownComponent,
         PrimitiveArraySortPipe,
+        SequenceDropdownComponent,
         SliderWithLabelComponent,
         SortImmutablePipe,
         TwigletDropdownComponent,

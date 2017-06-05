@@ -40,13 +40,16 @@ export class TwigletDropdownComponent {
     const component = <EditTwigletDetailsComponent>modelRef.componentInstance;
     component.setupTwigletLists(this.twiglets);
     component.twigletName = twigletName;
+    component.currentTwiglet = this.twiglet.get('name');
   }
 
-  openAbout(twigletName, twigletDescription) {
+  openAbout(twigletName, twigletDescription, currentTwiglet) {
     const modelRef = this.modalService.open(AboutTwigletModalComponent, { size: 'lg' });
     const component = <AboutTwigletModalComponent>modelRef.componentInstance;
     component.twigletName = twigletName;
     component.description = twigletDescription;
+    component.currentTwiglet = this.twiglet.get('name');
+    component.userState = this.userState;
   }
 
   openNewModal() {

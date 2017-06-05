@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, Input, OnInit } from '@angular/core';
+import * as validUrl from 'valid-url';
 
 import { D3Node } from '../../../non-angular/interfaces';
 import { StateService } from './../../state.service';
@@ -20,5 +21,9 @@ export class NodeInfoComponent {
 
   addTypeFilter(type) {
     // this.stateService.userState.addTypeFilter(type);
+  }
+
+  validUrl(url) {
+    return validUrl.isUri(url);
   }
 }

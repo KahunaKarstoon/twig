@@ -23,11 +23,12 @@ export class HeaderComponent {
   models: List<Object>;
   model: Map<string, any> = Map({});
   views: List<Object>;
+  sequences: List<Map<string, any>>;
   modelChangelog: List<Map<string, any>> = List([]);
   userState: Map<string, any> = Map({});
   activeId = 'twigletTab';
 
-  constructor(stateService: StateService, router: Router, private cd: ChangeDetectorRef) {
+  constructor(private stateService: StateService, router: Router, private cd: ChangeDetectorRef) {
     stateService.twiglet.observable.subscribe(twiglet => {
       this.twiglet = twiglet;
       this.cd.markForCheck();
@@ -67,5 +68,14 @@ export class HeaderComponent {
       this.views = views;
       this.cd.markForCheck();
     });
+
+    stateService.twiglet.eventsService.sequences.subscribe(sequences => {
+      this.sequences = sequences;
+      this.cd.markForCheck();
+    });
+  }
+
+  setTab({ nextId }) {
+    this.stateService.userState.setActiveTab(nextId.split('Tab')[0]);
   }
 }

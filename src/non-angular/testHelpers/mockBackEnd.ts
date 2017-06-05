@@ -1,6 +1,6 @@
-import { Map } from 'immutable';
-import { MockBackend } from '@angular/http/testing';
 import { BaseRequestOptions, Http, HttpModule, Response, ResponseOptions } from '@angular/http';
+import { MockBackend } from '@angular/http/testing';
+import { Map } from 'immutable';
 
 function twigletResponse () {
   return {
@@ -8,6 +8,7 @@ function twigletResponse () {
     changelog_url: '/twiglets/name1/changelog',
     commitMessage: 'The latest commit',
     description: 'a description',
+    events_url: '/twiglets/name1/events',
     links: [
       {
         association: 'firstLink',
@@ -52,6 +53,7 @@ function twigletResponse () {
         type: 'ent3',
       }
     ],
+    sequences_url: '/twiglet/name1/sequences',
     url: '/twiglets/name1',
     views_url: '/twiglet/name1/views',
   };
@@ -148,6 +150,7 @@ function twigletsResponse() {
       model_url: '/twiglet/name1/model',
       name: 'name2',
       orgModel: 'mynewmodel',
+      sequences_url: '/twiglet/name1/sequences',
       twiglet: '',
       url: 'twigleturl',
       views_url: 'viewsurl'
@@ -159,6 +162,7 @@ function twigletsResponse() {
       model_url: '/twiglet/name2/model',
       name: 'name1',
       orgModel: 'bsc',
+      sequences_url: '/twiglet/name2/sequences',
       twiglet: '',
       url: 'twigleturl2',
       views_url: 'viewsurl2'
@@ -332,6 +336,123 @@ function view() {
   };
 }
 
+function events() {
+  return [
+    {
+      description: 'description #1',
+      id: 'e83d0978-6ecc-4102-a782-5b2b58798288',
+      name: 'event name 1',
+      url: 'http://localhost:3000/v2/twiglets/Gravity/events/e83d0978-6ecc-4102-a782-5b2b58798288'
+    },
+    {
+      description: 'description of another event',
+      id: 'e83d0978-6ecc-4102-a782-5b2b58798289',
+      name: 'event name 2',
+      url: 'http://localhost:3000/v2/twiglets/Gravity/events/e83d0978-6ecc-4102-a782-5b2b58798289'
+    },
+    {
+      description: 'description of even another one',
+      id: 'e83d0978-6ecc-4102-a782-5b2b58798290',
+      name: 'event name 3',
+      url: 'http://localhost:3000/v2/twiglets/Gravity/events/e83d0978-6ecc-4102-a782-5b2b58798290'
+    },
+    {
+      description: 'description of a final event',
+      id: 'e83d0978-6ecc-4102-a782-5b2b58798291',
+      name: 'event name 4',
+      url: 'http://localhost:3000/v2/twiglets/Gravity/events/e83d0978-6ecc-4102-a782-5b2b58798291'
+    }
+  ];
+}
+
+function event(id) {
+  return {
+    description: `description for ${id}`,
+    id,
+    links: [
+      {
+        association: 'some name',
+        id: '26ce4b06-af0b-4c29-8368-631441915e67',
+        source: 'c11000af-c3a5-4db8-a7ea-74255c6d672e',
+        target: 'bb7d6af2-48ed-42f7-9fc1-705eb49b09bc',
+      },
+      {
+        attrs: [
+          { key: 'key1', value: 'value1' },
+          { key: 'key2', value: 'value2' }
+        ],
+        id: '626158d4-56db-4bfa-822b-9aaf7b17e88f',
+        source: 'ab2752a2-cbc5-412d-87f8-fcc4d0000ee8',
+        target: 'c11000af-c3a5-4db8-a7ea-74255c6d672e',
+      }
+    ],
+    name: `event name ${id}`,
+    nodes: [
+      {
+        attrs: [],
+        id: 'c11000af-c3a5-4db8-a7ea-74255c6d672e',
+        location: '',
+        name: 'node 1',
+        type: 'ent1',
+        x: 100,
+        y: 200,
+      },
+      {
+        attrs: [
+          { key: 'key1', value: 'value1' },
+          { key: 'key2', value: 'value2' }
+        ],
+        id: 'bb7d6af2-48ed-42f7-9fc1-705eb49b09bc',
+        location: '',
+        name: 'node 2',
+        type: 'ent2',
+        x: 200,
+        y: 100,
+      },
+      {
+        attrs: [],
+        id: 'ab2752a2-cbc5-412d-87f8-fcc4d0000ee8',
+        location: '',
+        name: 'node 3',
+        type: 'ent3',
+        x: 1000,
+        y: 900,
+      }
+    ],
+  };
+}
+
+function sequences() {
+  return [
+    {
+      id: 'seq1',
+      name: 'name1',
+    },
+    {
+      id: 'seq2',
+      name: 'name2',
+    }
+  ];
+}
+
+function sequence1() {
+  return {
+    description: 'some description',
+    events: ['e83d0978-6ecc-4102-a782-5b2b58798288', 'e83d0978-6ecc-4102-a782-5b2b58798289'],
+    id: 'seq1',
+    name: 'name1',
+  };
+}
+
+function sequence2() {
+  return {
+    description: 'some other description',
+    events: [],
+    id: 'seq2',
+    name: 'name2',
+  };
+}
+
 export const successfulMockBackend = new MockBackend();
 successfulMockBackend.connections.subscribe(connection => {
   if (connection.request.url.endsWith('/model')) {
@@ -374,6 +495,10 @@ successfulMockBackend.connections.subscribe(connection => {
     connection.mockRespond(new Response(new ResponseOptions({
       body: '',
     })));
+  } else if (connection.request.url.endsWith('/validateJwt')) {
+    connection.mockRespond(new Response(new ResponseOptions({
+      body: JSON.stringify(userResponse()),
+    })));
   } else if (connection.request.url.endsWith('/changelog')) {
     connection.mockRespond(new Response(new ResponseOptions({
       body: JSON.stringify(changelogResponse())
@@ -385,6 +510,38 @@ successfulMockBackend.connections.subscribe(connection => {
   } else if (connection.request.url.endsWith('/views/view1')) {
     connection.mockRespond(new Response(new ResponseOptions({
       body: JSON.stringify(view())
+    })));
+  } else if (connection.request.url.endsWith('/events')) {
+    connection.mockRespond(new Response(new ResponseOptions({
+      body: JSON.stringify(events())
+    })));
+  } else if (connection.request.url.endsWith('/events/e83d0978-6ecc-4102-a782-5b2b58798288')) {
+    connection.mockRespond(new Response(new ResponseOptions({
+      body: JSON.stringify(event('e83d0978-6ecc-4102-a782-5b2b58798288'))
+    })));
+  } else if (connection.request.url.endsWith('/events/e83d0978-6ecc-4102-a782-5b2b58798289')) {
+    connection.mockRespond(new Response(new ResponseOptions({
+      body: JSON.stringify(event('e83d0978-6ecc-4102-a782-5b2b58798289'))
+    })));
+  } else if (connection.request.url.endsWith('/events/e83d0978-6ecc-4102-a782-5b2b58798290')) {
+    connection.mockRespond(new Response(new ResponseOptions({
+      body: JSON.stringify(event('e83d0978-6ecc-4102-a782-5b2b58798290'))
+    })));
+  } else if (connection.request.url.endsWith('/events/e83d0978-6ecc-4102-a782-5b2b58798290')) {
+    connection.mockRespond(new Response(new ResponseOptions({
+      body: JSON.stringify(event('e83d0978-6ecc-4102-a782-5b2b58798291'))
+    })));
+  } else if (connection.request.url.endsWith('/sequences')) {
+    connection.mockRespond(new Response(new ResponseOptions({
+      body: JSON.stringify(sequences())
+    })));
+  } else if (connection.request.url.endsWith('/sequences/seq1')) {
+    connection.mockRespond(new Response(new ResponseOptions({
+      body: JSON.stringify(sequence1())
+    })));
+  } else if (connection.request.url.endsWith('/sequences/seq2')) {
+    connection.mockRespond(new Response(new ResponseOptions({
+      body: JSON.stringify(sequence2())
     })));
   } else if (connection.request.url.endsWith('/ping')) {
     connection.mockRespond(new Response(new ResponseOptions({

@@ -4,6 +4,7 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormArray, FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { By } from '@angular/platform-browser';
 import { NgbActiveModal, NgbAlert, NgbModule } from '@ng-bootstrap/ng-bootstrap';
+import { fromJS } from 'immutable';
 
 import { EditNodeModalComponent } from './edit-node-modal.component';
 import { fullTwigletMap, fullTwigletModelMap, newNodeTwigletMap } from '../../../non-angular/testHelpers';
@@ -32,12 +33,19 @@ describe('EditNodeModalComponent', () => {
     component.id = 'firstNode';
     component.twiglet = fullTwigletMap();
     component.twigletModel = fullTwigletModelMap();
+    component.userState = fromJS({
+      gravityPoints: {
+        gp1: {
+          id: 'gp1', name: 'gp1Name', x: 100, y: 100
+        },
+        gp2: {
+          id: 'gp2', name: 'gp2Name', x: 600, y: 1000,
+        }
+      }
+    });
     fixture.detectChanges();
     component.form.controls['name'].setValue('a name');
-    component.form.controls['end_at'].setValue('2017-01-25T22:51:53.878Z');
     component.form.controls['location'].setValue('denver');
-    component.form.controls['size'].setValue('12');
-    component.form.controls['start_at'].setValue('2017-01-25T22:51:53.878Z');
     component.form.controls['type'].setValue('ent1');
 
   });
@@ -63,14 +71,9 @@ describe('EditNodeModalComponent', () => {
       expect(emptySet[1].value).toEqual('');
     });
 
-    it('displays all of the appropriate select values for node.type', () => {
+    it('displays all of the appropriate select values for node.type and gravity points', () => {
       const selects = fixture.nativeElement.querySelectorAll('option');
-      expect(selects.length).toEqual(6);
-    });
-
-    it('correctly puts selected on the correct entity option', () => {
-      const selected = fixture.nativeElement.querySelector('option').attributes as NamedNodeMap;
-      expect(selected.getNamedItem('ng-reflect-selected')).toBeTruthy();
+      expect(selects.length).toEqual(9);
     });
 
     it('does not show an error message when the form is valid', () => {
@@ -120,12 +123,10 @@ describe('EditNodeModalComponent', () => {
           { key: 'one', value: 'whatever', dataType: null, required: null },
           { key: 'three', value: 'idk', dataType: null, required: null }
         ],
-        end_at: '2017-01-25T22:51:53.878Z',
+        gravityPoint: '',
         id: 'firstNode',
         location: 'denver',
         name: 'a name',
-        size: '12',
-        start_at: '2017-01-25T22:51:53.878Z',
         type: 'ent1'
       };
       spyOn(stateServiceStubbed.twiglet, 'updateNode');

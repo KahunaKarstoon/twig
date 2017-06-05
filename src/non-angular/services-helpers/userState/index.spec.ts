@@ -1,13 +1,16 @@
+import { NavigationEnd } from '@angular/router';
+import { successfulMockBackend } from './../../testHelpers/mockBackEnd';
+import { Observable } from 'rxjs/Rx';
+import { async, inject, TestBed } from '@angular/core/testing';
+import { BaseRequestOptions, Http, HttpModule, RequestMethod, Response, ResponseOptions } from '@angular/http';
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { fromJS, Map } from 'immutable';
 import { BehaviorSubject } from 'rxjs/BehaviorSubject';
-import { TestBed, async, inject } from '@angular/core/testing';
-import { BaseRequestOptions, Http, HttpModule, Response, RequestMethod, ResponseOptions } from '@angular/http';
-import { MockBackend } from '@angular/http/testing';
-import { Map, fromJS } from 'immutable';
+
+import { LoadingSpinnerComponent } from './../../../app/shared/loading-spinner/loading-spinner.component';
+import { router } from '../../testHelpers';
 import { UserState } from './../../interfaces/userState/index';
 import { UserStateService } from './index';
-import { router } from '../../testHelpers';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { LoadingSpinnerComponent } from './../../../app/shared/loading-spinner/loading-spinner.component';
 
 describe('UserStateService', () => {
   const mockUserResponse = {
@@ -16,22 +19,21 @@ describe('UserStateService', () => {
       name: 'user@email.com'
     }
   };
-  let mockBackend;
   let http: Http;
   let userStateService: UserStateService;
   let instRouter;
 
   beforeEach(() => {
     instRouter = router();
-    mockBackend = new MockBackend();
-    http = new Http(mockBackend, new BaseRequestOptions());
+    http = new Http(successfulMockBackend, new BaseRequestOptions());
     userStateService = new UserStateService(http, instRouter as any, null);
   });
 
   describe('router subscriptions', () => {
     it('correctly sets the mode to model', () => {
       const bs = instRouter.behaviorSubject as BehaviorSubject<any>;
-      bs.next({ url: '/model/someName' });
+      const event = new NavigationEnd(123, '/model/someName', 'whatever');
+      bs.next(event);
       userStateService.observable.subscribe(response => {
         expect(response.get('mode')).toEqual('model');
       });
@@ -39,7 +41,8 @@ describe('UserStateService', () => {
 
     it('correctly sets the mode to twiglet', () => {
       const bs = instRouter.behaviorSubject as BehaviorSubject<any>;
-      bs.next({ url: '/twiglet/someName' });
+      const event = new NavigationEnd(123, '/twiglet/someName', 'whatever');
+      bs.next(event);
       userStateService.observable.subscribe(response => {
         expect(response.get('mode')).toEqual('twiglet');
       });
@@ -47,7 +50,8 @@ describe('UserStateService', () => {
 
     it('correctly sets the mode to twiglet.model', () => {
       const bs = instRouter.behaviorSubject as BehaviorSubject<any>;
-      bs.next({ url: '/twiglet/someName/model' });
+      const event = new NavigationEnd(123, '/twiglet/someName/model', 'whatever');
+      bs.next(event);
       userStateService.observable.subscribe(response => {
         expect(response.get('mode')).toEqual('twiglet.model');
       });
@@ -70,6 +74,7 @@ describe('UserStateService', () => {
     const dirtyState = {
       activeModel: 'dirty',
       activeTwiglet: 'dirty',
+      addingGravityPoints: 'dirty',
       autoConnectivity: 'dirty',
       autoScale: 'dirty',
       bidirectionalLinks: 'dirty',
@@ -86,8 +91,10 @@ describe('UserStateService', () => {
       forceLinkStrength: 'dirty',
       forceVelocityDecay: 'dirty',
       formValid: 'dirty',
+      gravityPoints: 'dirty',
       highlightedNode: 'dirty',
       isEditing: 'dirty',
+      isEditingGravity: 'dirty',
       linkType: 'dirty',
       mode: 'dirty',
       nodeSizingAutomatic: 'dirty',
@@ -105,6 +112,7 @@ describe('UserStateService', () => {
     const cleanedState = {
       activeModel: 'dirty',
       activeTwiglet: 'dirty',
+      addingGravityPoints: 'dirty',
       autoConnectivity: 'in',
       autoScale: 'linear',
       bidirectionalLinks: true,
@@ -115,14 +123,16 @@ describe('UserStateService', () => {
       editTwigletModel: 'dirty',
       filters: Map({}),
       forceChargeStrength: 0.1,
-      forceGravityX: 0.1,
-      forceGravityY: 0.1,
+      forceGravityX: 0.5,
+      forceGravityY: 0.5,
       forceLinkDistance: 20,
       forceLinkStrength: 0.5,
       forceVelocityDecay: 0.9,
       formValid: 'dirty',
+      gravityPoints: Map({}),
       highlightedNode: 'dirty',
       isEditing: 'dirty',
+      isEditingGravity: 'dirty',
       linkType: 'path',
       mode: 'dirty',
       nodeSizingAutomatic: true,
@@ -139,8 +149,7 @@ describe('UserStateService', () => {
 
     beforeAll((done) => {
       instRouter = router();
-      mockBackend = new MockBackend();
-      userStateService = new UserStateService(new Http(mockBackend, new BaseRequestOptions()), instRouter as any, null);
+      userStateService = new UserStateService(new Http(successfulMockBackend, new BaseRequestOptions()), instRouter as any, null);
       userStateService['_userState'].next(fromJS(dirtyState));
       userStateService.resetAllDefaults();
       userStateService.observable.subscribe(_userState => {
@@ -158,14 +167,59 @@ describe('UserStateService', () => {
   });
 
   describe('logIn', () => {
-    let post;
-    beforeEach(() => {
-      post = spyOn(http, 'post').and.callThrough();
-      userStateService.logIn({ some: 'body' });
+
+    describe('success', () => {
+      let post;
+      let result;
+      beforeEach(() => {
+        post = spyOn(http, 'post').and.callThrough();
+        spyOn(userStateService, 'setCurrentUser');
+        userStateService.logIn({ some: 'body' }).subscribe(user => {
+          result = user;
+        });
+      });
+
+      it('posts to the correct url', () => {
+        expect(post.calls.argsFor(0)[0].endsWith('/login')).toEqual(true);
+      });
+
+      it('sets the current user', () => {
+        expect(userStateService.setCurrentUser).toHaveBeenCalled();
+      });
+
+      it('returns the user', () => {
+        expect(result.name).not.toBeUndefined();
+      });
     });
 
-    it('posts to the correct url', () => {
-      expect(post.calls.argsFor(0)[0].endsWith('/login')).toEqual(true);
+    describe('failure', () => {
+      let post;
+      let result;
+      let error;
+      beforeEach(() => {
+        spyOn(console, 'error');
+        post = spyOn(http, 'post').and.returnValue(Observable.throw(new Error('bad email')));
+        spyOn(userStateService, 'setCurrentUser');
+        userStateService.logIn({ some: 'body' }).subscribe(
+        user => {
+          result = user;
+        },
+        err => {
+          error = err;
+        });
+      });
+
+      it('does not set the current user', () => {
+        expect(userStateService.setCurrentUser).not.toHaveBeenCalled();
+      });
+
+      it('does not succeed', () => {
+        expect(result).toBeUndefined();
+      });
+
+      it('throws an error', () => {
+        expect(error).not.toBeUndefined();
+      });
     });
   });
 
@@ -187,6 +241,62 @@ describe('UserStateService', () => {
     });
   });
 
+  describe('loginViaWiproAd', () => {
+    describe('success', () => {
+      let post;
+      let result;
+      beforeEach(() => {
+        post = spyOn(http, 'post').and.callThrough();
+        spyOn(userStateService, 'setCurrentUser');
+        userStateService.loginViaWiproAd('jwt').subscribe(user => {
+          result = user;
+        });
+      });
+
+      it('posts to the correct url', () => {
+        expect(post.calls.argsFor(0)[0].endsWith('/validateJwt')).toEqual(true);
+      });
+
+      it('sets the current user', () => {
+        expect(userStateService.setCurrentUser).toHaveBeenCalled();
+      });
+
+      it('returns the user', () => {
+        expect(result.name).not.toBeUndefined();
+      });
+    });
+
+    describe('failure', () => {
+      let post;
+      let result;
+      let error;
+      beforeEach(() => {
+        spyOn(console, 'error');
+        post = spyOn(http, 'post').and.returnValue(Observable.throw(new Error('bad jwt or something')));
+        spyOn(userStateService, 'setCurrentUser');
+        userStateService.loginViaWiproAd('jwt').subscribe(
+        user => {
+          result = user;
+        },
+        err => {
+          error = err;
+        });
+      });
+
+      it('does not set the current user', () => {
+        expect(userStateService.setCurrentUser).not.toHaveBeenCalled();
+      });
+
+      it('does not succeed', () => {
+        expect(result).toBeUndefined();
+      });
+
+      it('throws an error', () => {
+        expect(error).not.toBeUndefined();
+      });
+    });
+  });
+
   describe('loadUserState', () => {
     let userState;
 
@@ -203,6 +313,7 @@ describe('UserStateService', () => {
       forceLinkDistance: 240,
       forceLinkStrength: 120,
       forceVelocityDecay: 180,
+      gravityPoints: {},
       linkType: 'linkType',
       nodeSizingAutomatic: false,
       scale: 140,
@@ -214,8 +325,7 @@ describe('UserStateService', () => {
 
     beforeAll((done) => {
       instRouter = router();
-      mockBackend = new MockBackend();
-      userStateService = new UserStateService(new Http(mockBackend, new BaseRequestOptions()), instRouter as any, null);
+      userStateService = new UserStateService(new Http(successfulMockBackend, new BaseRequestOptions()), instRouter as any, null);
       userStateService.loadUserState(updatedUserState);
       userStateService.observable.subscribe(_userState => {
         userState = _userState;
@@ -235,6 +345,24 @@ describe('UserStateService', () => {
       userStateService.setCurrentUser('blah');
       userStateService.observable.subscribe(response => {
         expect(response.get('user')).toEqual('blah');
+      });
+    });
+  });
+
+  describe('setActiveTab', () => {
+    it('can be set', () => {
+      userStateService.setActiveTab('blah');
+      userStateService.observable.subscribe(response => {
+        expect(response.get('activeTab')).toEqual('blah');
+      });
+    });
+  });
+
+  describe('setAlphaTarget', () => {
+    it('can be set', () => {
+      userStateService.setAlphaTarget(1.2);
+      userStateService.observable.subscribe(response => {
+        expect(response.get('alphaTarget')).toEqual(1.2);
       });
     });
   });
@@ -411,6 +539,15 @@ describe('UserStateService', () => {
     });
   });
 
+  describe('setPlaybackInterval', () => {
+    it('can set the playback interval', () => {
+      userStateService.setPlaybackInterval(100.17);
+      userStateService.observable.subscribe(response => {
+        expect(response.get('playbackInterval')).toEqual(100.17);
+      });
+    });
+  });
+
   describe('setMode', () => {
     it('can be set', () => {
       userStateService.setMode('some mode');
@@ -434,6 +571,15 @@ describe('UserStateService', () => {
       userStateService.setScale(10);
       userStateService.observable.subscribe(response => {
         expect(response.get('scale')).toEqual(10);
+      });
+    });
+  });
+
+  describe('setSeparation', () => {
+    it('can be set', () => {
+      userStateService.setSeparationDistance(10);
+      userStateService.observable.subscribe(response => {
+        expect(response.get('separationDistance')).toEqual(10);
       });
     });
   });
@@ -488,6 +634,79 @@ describe('UserStateService', () => {
       userStateService.setHighLightedNode('some id');
       userStateService.observable.subscribe(response => {
         expect(response.get('highlightedNode')).toEqual('some id');
+      });
+    });
+  });
+
+  describe('gravity', () => {
+    it('gravity edit mode can be set', () => {
+      userStateService.setGravityEditing(true);
+      userStateService.observable.subscribe(response => {
+        expect(response.get('isEditingGravity')).toEqual(true);
+      });
+    });
+
+    it('adding gravity points mode can be set', () => {
+      userStateService.setAddGravityPoints(true);
+      userStateService.observable.subscribe(response => {
+        expect(response.get('addingGravityPoints')).toEqual(true);
+      });
+    });
+
+    it('gravity points can be set', () => {
+      userStateService.setGravityPoints({ id: { id: 'id', name: 'name', x: 200, y: 200 } });
+      userStateService.observable.subscribe(response => {
+        expect(response.get('gravityPoints').toJS()).toEqual({
+          id: {
+            id: 'id',
+            name: 'name',
+            x: 200,
+            y: 200
+          }
+        });
+      });
+    });
+
+    describe('adding a gravity point', () => {
+      beforeEach(() => {
+        userStateService.setGravityPoint({
+          id: 'id',
+          name: 'name',
+          x: 100,
+          y: 100
+        });
+      });
+
+      it('can add a gravity point', () => {
+        userStateService.observable.subscribe(response => {
+          expect(response.get('gravityPoints').toJS()).toEqual({
+            id: {
+              id: 'id',
+              name: 'name',
+              x: 100,
+              y: 100
+            }
+          });
+        });
+      });
+
+      it('renames a gravity point if id matches', () => {
+        userStateService.setGravityPoint({
+          id: 'id',
+          name: 'new name',
+          x: 100,
+          y: 100
+        });
+        userStateService.observable.subscribe(response => {
+          expect(response.get('gravityPoints').toJS()).toEqual({
+            id: {
+              id: 'id',
+              name: 'new name',
+              x: 100,
+              y: 100
+            }
+          });
+        });
       });
     });
   });

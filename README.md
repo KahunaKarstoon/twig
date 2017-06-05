@@ -1,23 +1,24 @@
 # Twig
 
-This project was generated with [angular-cli](https://github.com/angular/angular-cli) version 1.0.0-beta.22-1.
+This project was generated with [angular-cli](https://github.com/angular/angular-cli) version 1.0.0-beta.22-1 and updated to use the latest 1.0.0.
 
 ## Quick Start
 
-```
+```Shell
 npm install
 npm run serve
 ```
+
 This builds the app and runs it on a dev server. Navigate to [localhost:4200](http://localhost:4200/). The app will automatically reload if you change any of the source files.
 
-Twig will look for twig-api on localhost. To get a local Twig API started, navigate to [Twig API](https://bitbucket.org/digitalrigbitbucketteam/twig-api).
+Twig will look for twig-api on localhost. To get a local Twig API started, navigate to [Twig API](https://github.com/buildit/twig-api).
 
 ### Quick Start for Twig API
 
-```
+```Shell
 npm install
 cp .env.example .env
-npm start 
+npm start
 ```
 
 ## Why Twig?
@@ -35,7 +36,7 @@ Our thinking in terms of how we should be able to visualise is inspired in part 
 * create a visual way to explore and traverse these environments
 * be able to see changes to the modelled environments over time
 
-There are a lot of domain specific and commercial products out there. We coud not find one that met our specific needs so we started building Twig.
+There are a lot of domain specific and commercial products out there. We could not find one that met our specific needs so we started building Twig.
 
 ## What is Twig?
 
@@ -58,19 +59,14 @@ All Twig data is persisted in a CouchdB instance.
 
 [Video demo (v. 1.5)](https://youtu.be/Rc8w188mtts)
 
-## Getting Started (how to run it, build, deploy, test, analysis)
+### Where is it deployed?
 
-### Set up 
+In the Buildit Riglet:
 
-Install dependencies with: 
-```
-npm install
-```
+[http://staging.twig2.riglet/](http://staging.twig2.riglet/)
 
-Build and watch for changes with:
-```
-npm run serve
-```
+## Getting Started (how to run it, build, test, analysis)
+
 
 ### Build
 
@@ -99,13 +95,13 @@ This project is currently an internal Buildit project and is not open to externa
 
 ### Team
 
-@spotted-dog 
+@spotted-dog
 
 @aochsner
 
 [Lizzie Szoke](https://github.com/lizziesz)
 
-@BenAychh
+[@BenAychh](https://github.com/BenAychh)
 
 ### Further help
 

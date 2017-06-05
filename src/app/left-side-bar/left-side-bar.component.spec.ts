@@ -1,3 +1,7 @@
+import { FilterImmutablePipe } from './../shared/pipes/filter-immutable.pipe';
+import { NgbTooltipModule } from '@ng-bootstrap/ng-bootstrap';
+import { EventsListComponent } from './../twiglets/events-list/events-list.component';
+import { TwigletModeLeftBarComponent } from './../twiglets/twiglet-mode-left-bar/twiglet-mode-left-bar.component';
 /* tslint:disable:no-unused-variable */
 import { DebugElement } from '@angular/core';
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
@@ -20,8 +24,15 @@ describe('LeftSideBarComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ LeftSideBarComponent, TwigletFiltersComponent, TwigletFilterTargetComponent ],
-      imports: [ ReactiveFormsModule ],
+      declarations: [
+        LeftSideBarComponent,
+        TwigletFiltersComponent,
+        TwigletFilterTargetComponent,
+        TwigletModeLeftBarComponent,
+        EventsListComponent,
+        FilterImmutablePipe,
+      ],
+      imports: [ ReactiveFormsModule, NgbTooltipModule ],
       providers: [
         { provide: StateService, useValue: stateServiceStubbed },
         { provide: ActivatedRoute, useValue: {
@@ -69,6 +80,7 @@ describe('LeftSideBarComponent', () => {
       component.userState = fromJS({
         mode: 'model',
       });
+      component['cd'].markForCheck();
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelector('p').innerHTML).toEqual('Placeholder for Models');
     });

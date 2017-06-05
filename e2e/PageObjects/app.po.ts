@@ -1,8 +1,9 @@
 import { browser, by, element } from 'protractor';
 
+import { EventsList } from './EventsList';
+import { FormsForModals } from './FormsForModals';
 import { Header } from './header';
 import { ModelEditForm } from './ModelEditForm';
-import { ModalForm } from './modalForm';
 import { ModelInfo } from './ModelInfo';
 import { NodeList } from './NodeList';
 import { TwigletFilters } from './TwigletFilters';
@@ -12,7 +13,7 @@ import { User } from './user';
 
 export class TwigPage {
   header = new Header();
-  modalForm = new ModalForm();
+  formForModals = new FormsForModals();
   modelInfo = new ModelInfo();
   modelEditForm = new ModelEditForm();
   nodeList = new NodeList();
@@ -20,6 +21,7 @@ export class TwigPage {
   user = new User();
   twigletGraph = new TwigletGraph();
   twigletModel = new TwigletModel();
+  eventsList = new EventsList();
 
   navigateTo() {
     return browser.get('/');

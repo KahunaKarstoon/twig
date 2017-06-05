@@ -5,18 +5,17 @@ import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { fromJS, List, Map } from 'immutable';
 import { ToastsManager } from 'ng2-toastr/ng2-toastr';
 import { clone, merge, pick } from 'ramda';
-import { BehaviorSubject, Observable } from 'rxjs/Rx';
+import { BehaviorSubject, Observable, Subscription } from 'rxjs/Rx';
 
 import { handleError } from '../httpHelpers';
 import { ChangeLogService } from '../changelog';
 import { Config } from '../../config';
-import { D3Node, isD3Node, Link, Twiglet, TwigletToSend, ViewNode } from './../../interfaces/twiglet';
+import { D3Node, isD3Node, Link, ModelNodeAttribute, Twiglet, TwigletToSend, UserState, ViewNode } from './../../interfaces';
+import { EventsService } from './events.service';
 import { LoadingSpinnerComponent } from './../../../app/shared/loading-spinner/loading-spinner.component';
-import { ModelNodeAttribute } from './../../interfaces/model/index';
 import { ModelService, } from './model.service';
 import { OverwriteDialogComponent } from './../../../app/shared/overwrite-dialog/overwrite-dialog.component';
 import { StateCatcher } from '../index';
-import { UserState } from './../../interfaces/userState/index';
 import { UserStateService } from '../userState';
 import { ViewService } from './view.service';
 
@@ -29,6 +28,8 @@ export class TwigletService {
   public changeLogService: ChangeLogService;
   public modelService: ModelService;
   public viewService: ViewService;
+  public eventsService: EventsService;
+  playbackSubscription: Subscription;
 
   private _twiglets: BehaviorSubject<List<any>> =
     new BehaviorSubject(List([]));
@@ -45,6 +46,8 @@ export class TwigletService {
       url: null,
       views_url: null,
     }));
+
+  private _pristineTwiglet: Map<string, any> = null;
 
   private _twigletBackup: Map<string, any> = null;
 
@@ -65,6 +68,7 @@ export class TwigletService {
       this.changeLogService = new ChangeLogService(http, this);
       this.viewService = new ViewService(http, this, userState, toastr);
       this.modelService = new ModelService(http, router, this);
+      this.eventsService = new EventsService(http, this, userState, toastr);
       this.updateListOfTwiglets();
     }
   }
@@ -133,7 +137,7 @@ export class TwigletService {
   }
 
   /**
-   * Updates the list of models from the backend.
+   * Updates the list of twiglets from the backend.
    *
    *
    * @memberOf TwigletService
@@ -209,14 +213,29 @@ export class TwigletService {
           const model = merge(modelFromServer, { url: twigletFromServer.model_url });
           this.modelService.setModel(model);
         }
+        const links = convertArrayToMapForImmutable(twigletFromServer.links as Link[]);
+        const nodes = convertArrayToMapForImmutable(twigletFromServer.nodes as D3Node[]);
+        const editableViewFromServer = clone(viewFromServer);
+        Reflect.ownKeys(editableViewFromServer.links).forEach((id: string) => {
+          if (!links.get(id)) {
+            delete editableViewFromServer.links[id];
+          }
+        });
+        Reflect.ownKeys(editableViewFromServer.nodes).forEach((id: string) => {
+          if (!nodes.get(id)) {
+            delete editableViewFromServer.nodes[id];
+          }
+        });
         const newTwiglet = {
           _rev: twigletFromServer._rev,
           changelog_url: twigletFromServer.changelog_url,
           description: twigletFromServer.description,
-          links: convertArrayToMapForImmutable(twigletFromServer.links as Link[]).mergeDeep(viewFromServer.links),
+          events_url: twigletFromServer.events_url,
+          links: links.mergeDeep(editableViewFromServer.links),
           model_url: twigletFromServer.model_url,
           name: twigletFromServer.name,
-          nodes: convertArrayToMapForImmutable(twigletFromServer.nodes as D3Node[]).mergeDeep(viewFromServer.nodes),
+          nodes: nodes.mergeDeep(editableViewFromServer.nodes),
+          sequences_url: twigletFromServer.sequences_url,
           url: twigletFromServer.url,
           views_url: twigletFromServer.views_url,
         };
@@ -224,6 +243,7 @@ export class TwigletService {
         if (this.changeLogService) {
           this.changeLogService.refreshChangelog();
         }
+        this._pristineTwiglet = this._twiglet.getValue();
         this.userState.stopSpinner();
         return Observable.of({
           modelFromServer,
@@ -232,6 +252,99 @@ export class TwigletService {
         });
       })
     );
+  }
+
+  /**
+   * Clears the current twiglet
+   *
+   *
+   * @memberOf TwigletService
+   */
+  clearCurrentTwiglet() {
+    this._twiglet.next(fromJS({ name: '', nodes: Map({}), links: Map({}) }));
+  }
+
+  /**
+   * Loads and shows a specific event from the past.
+   *
+   * @param {string} id then id of the event to show.
+   *
+   * @memberOf TwigletService
+   */
+  showEvent(id: string) {
+    if (id) {
+      this.userState.startSpinner();
+      this.eventsService.getEvent(id).subscribe(event => {
+        this.userState.setCurrentEvent(id);
+        this.replaceNodesAndLinks(event.nodes, event.links);
+      });
+    } else {
+      this.userState.setCurrentEvent(null);
+      this.showOriginal();
+    }
+  }
+
+  previousEvent() {
+    const previous = this.eventsService.stepBack();
+    if (previous) {
+      this.showEvent(previous.get('id'));
+    } else {
+      this.toastr.warning('no events selected');
+    }
+  }
+
+  nextEvent() {
+    const next = this.eventsService.stepForward();
+    if (next) {
+      this.showEvent(next.get('id'));
+    } else {
+      this.toastr.warning('no events selected');
+    }
+  }
+
+  /**
+   * Goes back to displaying the original twiglet.
+   *
+   *
+   * @memberOf TwigletService
+   */
+  showOriginal() {
+    this.replaceNodesAndLinks(
+      this._pristineTwiglet.get('nodes').valueSeq().toJS(),
+      this._pristineTwiglet.get('links').valueSeq().toJS()
+    );
+  }
+
+  /**
+   * Plays the sequence of events.
+   *
+   *
+   * @memberOf TwigletService
+   */
+  playSequence() {
+    this.playbackSubscription = this.eventsService.getSequenceAsTimedEvents()
+      .subscribe(event => {
+        if (!this.playbackSubscription.closed) {
+          this.userState.setCurrentEvent(event.id);
+          this.replaceNodesAndLinks(event.nodes, event.links);
+        }
+      }, (error) => {
+        this.toastr.warning(error);
+        this.userState.setPlayingBack(false);
+      }, () => {
+        this.userState.setPlayingBack(false);
+      });
+  }
+
+  /**
+   * Stops the playback of events.
+   *
+   *
+   * @memberOf TwigletService
+   */
+  stopPlayback() {
+    this.userState.setPlayingBack(false);
+    this.playbackSubscription.unsubscribe();
   }
 
   /**
@@ -265,10 +378,9 @@ export class TwigletService {
    * @memberOf TwigletService
    */
   addTwiglet(body): Observable<any> {
-    const bodyString = JSON.stringify(body);
     const headers = new Headers({ 'Content-Type': 'application/json' });
     const options = new RequestOptions({ headers: headers, withCredentials: true });
-    return this.http.post(`${Config.apiUrl}/${Config.twigletsFolder}`, body, options).map((res: Response) => res.json());
+    return this.http.post(`${Config.apiUrl}/${Config.twigletsFolder}`, body, options);
   }
 
   /**
@@ -309,7 +421,8 @@ export class TwigletService {
     const options = new RequestOptions({ headers: headers, withCredentials: true });
     return this.http.put(this._twiglet.getValue().get('url'), twigletToSend, options)
       .map((res: Response) => res.json())
-      .flatMap(newTwiglet => {
+      .flatMap((newTwiglet: Twiglet) => {
+        this.setRev(newTwiglet._rev);
         if (this.isSiteWide) {
           this.router.navigate(['twiglet', newTwiglet.name]);
           this.changeLogService.refreshChangelog();
@@ -379,6 +492,13 @@ export class TwigletService {
     this._twiglet.next(twiglet.set('nodes', mutableNodes.asImmutable()));
   }
 
+  updateNodeParam(id, key, value) {
+    let twiglet = this._twiglet.getValue();
+    twiglet = this.mergeNodesIntoTwiglet(twiglet, this._nodeLocations.getValue());
+    twiglet = twiglet.setIn(['nodes', id, key], value);
+    this._twiglet.next(twiglet);
+  }
+
   /**
    * Updates a single node on the twiglet. Contains a state catcher so that D3 doesn't keep looping
    * on itself when it pushes x and y updates and think it needs to recalculate again and again and again.
@@ -427,11 +547,12 @@ export class TwigletService {
     // update nodes
     const currentNodeLocations = this._nodeLocations.getValue();
     const newSetOfNodes = updatedNodes.reduce((mutable, node) => {
-      const currentNodeLocation = currentNodeLocations.get(node.id);
-      node.x = currentNodeLocation ? currentNodeLocation.get('x') : node.x;
-      node.y = currentNodeLocation ? currentNodeLocation.get('y') : node.y;
+      const currentNodeLocation = <Map<string, any>>currentNodeLocations.get(node.id) || Map({});
+      currentNodeLocation.keySeq().forEach(key => {
+        node[key] = currentNodeLocation.get(key) ? currentNodeLocation.get(key) : node[key];
+      });
       return mutable.set(node.id, fromJS(node));
-    }, Map({}).asMutable());
+    }, Map({}).asMutable()).asImmutable();
     twiglet = twiglet.set('nodes', newSetOfNodes);
 
     // update links
@@ -442,6 +563,7 @@ export class TwigletService {
 
     // publish update
     this._twiglet.next(twiglet);
+    this.userState.stopSpinner();
   }
 
   private mergeNodesIntoTwiglet(twiglet, newNodes: Object | Map<string, any>): Map<string, any> {
@@ -458,7 +580,7 @@ export class TwigletService {
    * @memberOf TwigletService
    */
   updateNodeViewInfo(nodes: D3Node[]) {
-    const locationInformationToSave = ['x', 'y', 'hidden', 'fx', 'fy', 'collapsed', 'collapsedAutomatically'];
+    const locationInformationToSave = ['gravityPoint', 'x', 'y', 'hidden', 'fx', 'fy', 'collapsed', 'collapsedAutomatically'];
     this.ngZone.runOutsideAngular(() => {
       this._nodeLocations.next(nodes.reduce((map, node) =>
         locationInformationToSave.reduce((sameMap, key) => {
@@ -487,6 +609,11 @@ export class TwigletService {
    * @memberOf NodesService
    */
   removeNodes(removedNodes: D3Node[]) {
+    const mutableNodeLocations = this._nodeLocations.getValue().asMutable();
+    const newSetOfNodeLocations = removedNodes.reduce((mutable, node) => {
+      return mutable.delete(node.id);
+    }, mutableNodeLocations).asImmutable();
+    this._nodeLocations.next(newSetOfNodeLocations);
     let twiglet = this._twiglet.getValue();
     const mutableNodes = twiglet.get('nodes').asMutable();
     const newSetOfNodes = removedNodes.reduce((mutable, node) => {
@@ -606,18 +733,21 @@ export class TwigletService {
     if (this._nodeLocations.getValue().get(d3Node.id)) {
       nodeLocation = this._nodeLocations.getValue().get(d3Node.id).toJS();
     }
-    const sanitizedNode = merge(pick([
-      'centerOfGravity',
-      'end_at',
+    const sanitizedNode = pick([
       'id',
       'location',
       'name',
-      'start_at',
+      'size',
       'type',
-      'id',
-    ], d3Node), nodeLocation) as any as D3Node;
+      '_color',
+      '_size'
+    ], merge(d3Node, nodeLocation)) as any as D3Node;
     sanitizedNode.attrs = d3Node.attrs.map(cleanAttribute);
     return sanitizedNode;
+  }
+
+  private setRev(rev) {
+    this._twiglet.next(this._twiglet.getValue().set('_rev', rev));
   }
 }
 
@@ -645,7 +775,7 @@ function sourceAndTargetBackToIds(link: Link) {
  * @param {Map<string, any>} map
  * @returns {K[]}
  */
-function convertMapToArrayForUploading<K>(map: Map<string, any>): K[] {
+export function convertMapToArrayForUploading<K>(map: Map<string, any>): K[] {
   const mapAsJs = map.toJS();
   return Reflect.ownKeys(mapAsJs).reduce((array, key) => {
     array.push(mapAsJs[key]);
@@ -660,7 +790,7 @@ function convertMapToArrayForUploading<K>(map: Map<string, any>): K[] {
  * @param {any[]} array
  * @returns {Map<string, K>}
  */
-function convertArrayToMapForImmutable<K>(array: any[]): Map<string, K> {
+export function convertArrayToMapForImmutable<K>(array: any[]): Map<string, K> {
   return array.reduce((mutable, node) => {
     return mutable.set(node.id, fromJS(node));
   }, Map({}).asMutable()).asImmutable();
@@ -672,7 +802,7 @@ function convertArrayToMapForImmutable<K>(array: any[]): Map<string, K> {
  * @param {ModelNodeAttribute} attr
  * @returns {ModelNodeAttribute}
  */
-function cleanAttribute(attr: ModelNodeAttribute): ModelNodeAttribute {
+export function cleanAttribute(attr: ModelNodeAttribute): ModelNodeAttribute {
   delete attr.dataType;
   delete attr.required;
   return attr;

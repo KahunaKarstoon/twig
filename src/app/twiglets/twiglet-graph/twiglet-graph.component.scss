@@ -14,6 +14,11 @@ svg {
   cursor: pointer;
 }
 
+/deep/ .gravity-circle {
+  stroke-width: 1px;
+  fill: #999999;
+}
+
 /deep/ .link {
   stroke: #999;
   stroke-opacity: 0.6;
@@ -23,6 +28,19 @@ svg {
 
 /deep/ .node-group {
   cursor: pointer;
+}
+
+/deep/ .gravity-point-group {
+  fill: white;
+  cursor: pointer;
+}
+
+/deep/ .gravity-point-name {
+  fill: #000000
+}
+
+/deep/ .invisible {
+  display: none;
 }
 
 
