@@ -227,7 +227,7 @@ Resources:
         Type: "S3"
       Environment:
         ComputeType: !Ref BuildComputeType
-        Image: "aws/codebuild/docker:1.12.1"
+        Image: "aws/codebuild/eb-nodejs-6.10.0-amazonlinux-64:4.0.0"
         Type: "LINUX_CONTAINER"
         EnvironmentVariables:
           - Name: AWS_DEFAULT_REGION

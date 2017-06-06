@@ -7,8 +7,9 @@ phases:
   install:
     commands:
       - sudo apt-get -y update
-      - sudo apt-get -y install nodejs
-      - sudo apt-get -y install npm
+#      - sudo apt-get -y install nodejs
+#      - sudo apt-get -y install npm
+      - sudo apt-get -y install docker
       - sudo ln -s /usr/bin/nodejs /usr/bin/node
   pre_build:
     commands:
