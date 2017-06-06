@@ -1,8 +1,8 @@
 # Build specification for building project under Amazon CodeBuild
 
 version: 0.1
-environment_variables:
-  plaintext:
+#environment_variables:
+#  plaintext:
 phases:
   pre_build:
     commands:
