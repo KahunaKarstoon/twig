@@ -15,7 +15,7 @@ phases:
       - $(aws ecr get-login)
       - sudo apt-get -y update
       - sudo apt-get -y install nodejs
-#      - sudo apt-get -y install npm
+      - sudo apt-get -y install npm
       - sudo ln -s /usr/bin/nodejs /usr/bin/node
   build:
     commands:
