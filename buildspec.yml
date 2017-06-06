@@ -9,7 +9,8 @@ phases:
       - sudo apt-get -y update
 #      - sudo apt-get -y install nodejs
 #      - sudo apt-get -y install npm
-      - sudo apt-get -y install docker
+      - sudo apt-get -y install docker.io
+      - sudo ln -sf /usr/bin/docker.io /usr/local/bin/docker
       - sudo ln -s /usr/bin/nodejs /usr/bin/node
   pre_build:
     commands:

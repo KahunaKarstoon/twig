@@ -42,6 +42,11 @@ Parameters:
       - BUILD_GENERAL1_LARGE
     Description:  The compute type used to run the build.  Use the smallest value that works for your build.
 
+  BuildContainer:
+    Type: String
+    Default: aws/codebuild/nodejs:7.0.0
+    Description:  The container within which the build is carried out.
+
   ContainerPort:
     Type: Number
     Default: 80
@@ -67,7 +72,9 @@ Metadata:
       GitHubBranches:
         default: "Branch to Build/Deploy"
       BuildComputeType:
-        default: "Build Machine Size"
+        default: "CodeBuild Machine Size"
+      BuildContainer:
+        default: "CodeBuild Container"
       Cluster:
         default: "ECS Cluster for Deployments"
       TargetGroup:
@@ -90,6 +97,7 @@ Metadata:
           default: Build Configuration
         Parameters:
           - BuildComputeType
+          - BuildContainer
       - Label:
           default: Deployment Configuration
         Parameters:
@@ -227,7 +235,7 @@ Resources:
         Type: "S3"
       Environment:
         ComputeType: !Ref BuildComputeType
-        Image: "aws/codebuild/eb-nodejs-6.10.0-amazonlinux-64:4.0.0"
+        Image: !Ref BuildContainer
         Type: "LINUX_CONTAINER"
         EnvironmentVariables:
           - Name: AWS_DEFAULT_REGION
