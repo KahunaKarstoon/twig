@@ -13,6 +13,7 @@ phases:
 #      - sudo ./nodesource_setup.sh
       - sudo apt-get -y install nodejs
       - node --version
+      - nodejs --version
       - npm --version
       - docker --version
   pre_build:
