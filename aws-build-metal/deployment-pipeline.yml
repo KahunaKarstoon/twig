@@ -319,7 +319,8 @@ Resources:
                     "TargetGroup": "${TargetGroup}",
                     "Repository": "${Repository}",
                     "ContainerPort": "${ContainerPort}",
-                    "HostPort": "${HostPort}"
+                    "HostPort": "${HostPort}",
+                    "AppName": "${AppName}"
                   }
               InputArtifacts:
                 - Name: Template
