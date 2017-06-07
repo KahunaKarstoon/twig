@@ -10,7 +10,7 @@ phases:
       - apt-get -y install curl
       - curl -sL https://deb.nodesource.com/setup_6.x -o nodesource_setup.sh
       - chmod +x ./nodesource_setup.sh
-      - ./nodesource_setup.sh
+      - sudo ./nodesource_setup.sh
       - node --version
       - npm --version
       - docker --version
