@@ -12,8 +12,8 @@ phases:
 #      - chmod +x ./nodesource_setup.sh
 #      - sudo ./nodesource_setup.sh
       - sudo apt-get -y install nodejs
-      - node --version
       - nodejs --version
+      - node --version
       - npm --version
       - docker --version
   pre_build:
