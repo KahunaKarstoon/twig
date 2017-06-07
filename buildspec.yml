@@ -14,7 +14,7 @@ phases:
 #      - sudo apt-get -y install nodejs
       - curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
       - sudo apt-get install -y nodejs
-      - sudo ln -s /usr/bin/nodejs /usr/bin/node
+#      - sudo ln -s /usr/bin/nodejs /usr/bin/node
       - npm --version
       - node --version
       - docker --version
