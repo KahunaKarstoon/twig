@@ -306,7 +306,8 @@ Resources:
                 Provider: CloudFormation
               Configuration:
                 ChangeSetName: Deploy
-                ActionMode: CREATE_UPDATE
+#                ActionMode: CREATE_UPDATE
+                ActionMode: REPLACE_ON_FAILURE
                 StackName: !Sub "${AWS::StackName}-Service"
                 Capabilities: CAPABILITY_NAMED_IAM
                 TemplatePath: Template::templates/service.yml
