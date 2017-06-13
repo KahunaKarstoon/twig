@@ -5,12 +5,11 @@ Parameters:
 
   DesiredCount:
     Type: Number
-    Default: 0
 
-  TargetGroup:
+  TargetGroupArn:
     Type: String
 
-  Cluster:
+  ClusterArn:
     Type: String
 
   Repository:
@@ -21,11 +20,9 @@ Parameters:
 
   ContainerPort:
     Type: Number
-    Default: 80
 
   HostPort:
     Type: Number
-    Default: 80
 
 
 Resources:
@@ -49,14 +46,14 @@ Resources:
     Type: AWS::ECS::Service
     DependsOn: ECSServiceRole
     Properties:
-      Cluster: !Ref Cluster
+      Cluster: !Ref ClusterArn
       Role: !Ref ECSServiceRole
       DesiredCount: !Ref DesiredCount
       TaskDefinition: !Ref TaskDefinition
       LoadBalancers:
         - ContainerName: !Ref AppName
           ContainerPort: !Ref ContainerPort
-          TargetGroupArn: !Ref TargetGroup
+          TargetGroupArn: !Ref TargetGroupArn
 
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition

@@ -2,10 +2,9 @@
 
 set -o errexit -o xtrace
 
-#project=${1}
-PROJECT=twig-build-metal
+PROJECT=${1}
 DEPLOY_DIR=deploy
-MAIN_YML=deployment-pipeline.yml
+MAIN_YML=main.yml
 
 if [ ! -d ${DEPLOY_DIR} ]; then
 mkdir ${DEPLOY_DIR}

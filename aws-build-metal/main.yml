@@ -1,37 +1,37 @@
 Parameters:
   AppName:
     Type: String
-    Description:  A short name for the application you're building and deploying.
+    Description:  A short name for the application to build and deploy.
 
   GitHubRepo:
     Type: String
-    Description:  The repo you want to build from.
+    Description:  The repo to build from.
 
   GitHubBranch:
     Type: String
-    Description:  The branch you want to build and deploy.
+    Description:  The branch to build and deploy.
 
   GitHubUser:
     Type: String
-    Description:  This, combined with the Github Token, allows CodeBuild to access the repository.
+    Description:  Combined with the Github Token, allows CodeBuild to access the GitHubRepo.
 
   GitHubToken:
     Type: String
     NoEcho: true
-    Description:  This, combined with the Github User, allows CodeBuild to access the repository.
+    Description:  Combined with the Github User, allows CodeBuild to access the GitHubRepo.
 
-  TargetGroup:
+  TargetGroupArn:
     Type: String
-    Description:  TODO
+    Description:  The ARN of the TargetGroup to which the Service will be attached.
 
-  Cluster:
+  ClusterArn:
     Type: String
-    Description:  The ECS Cluster to which the resulting code should be deployed.
+    Description:  The ARN of the ECS Cluster to which code should be deployed.
 
-  TemplateBucket:
+  CfnTemplateBucket:
     Type: String
     Default:  twig-build-metal
-    Description:  The bucket specific to this project, and containing this, and related templates (use ./bin/deploy script to package the templates in S3).
+    Description:  The bucket specific to this project which contains this and related templates (use ./bin/deploy script to package the templates in S3).
 
   BuildComputeType:
     Type: String
@@ -44,18 +44,18 @@ Parameters:
 
   BuildContainer:
     Type: String
-    Default: aws/codebuild/nodejs:7.0.0
-    Description:  The container within which the build is carried out.
+    Default: aws/codebuild/docker:1.12.1
+    Description:  The container where the build should execute.  See http://tinyurl.com/lhewywa for a list of available containers.
 
   ContainerPort:
     Type: Number
     Default: 80
-    Description:  TODO
+    Description:  The in-container port number assigned to your service.
 
   HostPort:
     Type: Number
     Default: 80
-    Description:  TODO
+    Description:  The ECS instance port number on which your service is exposed.  '0' for automatic assignment.
 
 
 Metadata:
@@ -67,19 +67,19 @@ Metadata:
         default: "Github User"
       GitHubToken:
         default: "Github Personal Access Token"
-      GitHubRepos:
+      GitHubRepo:
         default: "Repo"
-      GitHubBranches:
+      GitHubBranch:
         default: "Branch to Build/Deploy"
       BuildComputeType:
         default: "CodeBuild Machine Size"
       BuildContainer:
         default: "CodeBuild Container"
-      Cluster:
-        default: "ECS Cluster for Deployments"
-      TargetGroup:
+      ClusterArn:
+        default: "ARN of ECS Cluster for Deployments"
+      TargetGroupArn:
         default: "Target Group for Deployments"
-      TemplateBucket:
+      CfnTemplateBucket:
         default: "Bucket from which this template is obtained"
     ParameterGroups:
       - Label:
@@ -99,16 +99,16 @@ Metadata:
           - BuildComputeType
           - BuildContainer
       - Label:
-          default: Deployment Configuration
+          default: ECS Deployment Configuration
         Parameters:
-          - Cluster
-          - TargetGroup
+          - ClusterArn
+          - TargetGroupArn
           - ContainerPort
           - HostPort
       - Label:
-          default: CloudFormation Configuration
+          default: CloudFormation Stack Configuration
         Parameters:
-          - TemplateBucket
+          - CfnTemplateBucket
 
 
 Resources:
@@ -204,8 +204,8 @@ Resources:
             Statement:
               - Resource:
                   - !Sub arn:aws:s3:::${ArtifactBucket}/*
-                  - !Sub arn:aws:s3:::${TemplateBucket}
-                  - !Sub arn:aws:s3:::${TemplateBucket}/*
+                  - !Sub arn:aws:s3:::${CfnTemplateBucket}
+                  - !Sub arn:aws:s3:::${CfnTemplateBucket}/*
                 Effect: Allow
                 Action:
                   - s3:PutObject
@@ -279,7 +279,7 @@ Resources:
                 - Name: Template
               RunOrder: 1
               Configuration:
-                S3Bucket: !Ref TemplateBucket
+                S3Bucket: !Ref CfnTemplateBucket
                 S3ObjectKey: templates.zip
         - Name: Build
           Actions:
@@ -316,8 +316,8 @@ Resources:
                   {
                     "Tag" : { "Fn::GetParam" : [ "BuildOutput", "build.json", "tag" ] },
                     "DesiredCount": "1",
-                    "Cluster": "${Cluster}",
-                    "TargetGroup": "${TargetGroup}",
+                    "ClusterArn": "${ClusterArn}",
+                    "TargetGroupArn": "${TargetGroupArn}",
                     "Repository": "${Repository}",
                     "ContainerPort": "${ContainerPort}",
                     "HostPort": "${HostPort}",
