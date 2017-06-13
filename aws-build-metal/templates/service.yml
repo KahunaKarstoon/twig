@@ -38,8 +38,8 @@ Resources:
         {
             "Statement": [{
                 "Effect": "Allow",
-                "Principal": { "Service": [ "*" ]},
-                "Action": [ "*" ]
+                "Principal": { "Service": [ "ecs.amazonaws.com" ]},
+                "Action": [ "sts:AssumeRole" ]
             }]
         }
       ManagedPolicyArns:
