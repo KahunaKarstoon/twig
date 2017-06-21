@@ -62,10 +62,10 @@ Resources:
       ContainerDefinitions:
         - Name: !Ref AppName
           Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}:${Tag}
-#          EntryPoint:
-#            - /usr/sbin/nginx
-#            - -g
-#            - 'daemon off;'
+          EntryPoint:
+            - /usr/sbin/nginx
+            - -g
+            - 'daemon off;'
           Essential: true
           Memory: 128
           PortMappings:
