@@ -497,13 +497,6 @@ describe('twigletService', () => {
       });
     });
 
-    it('stores the hidden attribute', () => {
-      twigletService.updateNodeViewInfo([{ id: 'an id', hidden: true }]);
-      twigletService.nodeLocations.subscribe(nodes => {
-        expect(nodes.getIn(['an id', 'hidden'])).toEqual(true);
-      });
-    });
-
     it('stores the fx position', () => {
       twigletService.updateNodeViewInfo([{ id: 'an id', fx: 100 }]);
       twigletService.nodeLocations.subscribe(nodes => {

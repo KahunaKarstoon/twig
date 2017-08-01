@@ -2,6 +2,12 @@ import { browser, by, element, ElementFinder } from 'protractor';
 
 const ownTag = '//app-twiglet-filters';
 
+export interface BasicFilter {
+  type: string;
+  key: string;
+  param: string;
+}
+
 export class TwigletFilters {
 
   get filterCount() {
@@ -55,8 +61,3 @@ export interface Filter extends BasicFilter {
   target: BasicFilter;
 }
 
-export interface BasicFilter {
-  type: string;
-  key: string;
-  param: string;
-}
