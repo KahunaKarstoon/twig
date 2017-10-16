@@ -1,0 +1,27 @@
+version: 0.1
+
+phases:
+  install:
+    commands:
+      - curl -sL https://deb.nodesource.com/setup_8.x | bash -
+      - apt-get install -y nodejs
+
+  build:
+    commands:
+      - npm install
+      - npm run lint
+      - CHROME_BIN=/usr/bin/google-chrome xvfb-run -s '-screen 0 1280x1024x16' npm run test:ci
+      - npm run build:prod
+      - docker build --tag "${REPOSITORY_URI}:${TAG}" .
+      # Deploy this some way
+      - npm run test:e2e
+      # - Stage this somehow?
+
+  post_build:
+    commands:
+      - test $CODEBUILD_BUILD_SUCCEEDING -eq 0 || docker push "${REPOSITORY_URI}:${TAG}"
+      - printf '{"tag":"%s"}' $TAG > build.json
+
+artifacts:
+  files:
+    - build.json
